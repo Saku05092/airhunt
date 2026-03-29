@@ -131,6 +131,34 @@ The following packages should be updated for best compatibility...
 - [x] Web bundling fix (workspaces conflict resolved)
 - [x] Expo Go device testing confirmed
 
+### Sprint 2: Core Features (2026-03-29 - 2026-03-30)
+- [x] UI redesign: Discover/Dashboard split (was single Campaigns tab)
+- [x] Discover tab: browse all campaigns with tier/value/tasks preview
+- [x] Dashboard tab: tracked campaigns only with priority view
+- [x] Modern dark theme (purple primary, zinc neutrals, true black)
+- [x] Claudex REST API connection (auto-sync + pull-to-refresh)
+- [x] Supabase project setup + SQL schema deployed (RLS enabled)
+- [x] Supabase Auth (Email/Password sign in/up + skip for offline)
+- [x] SecureStore token persistence
+- [x] User custom task creation (inline form per wallet)
+- [x] Today's Priority section (deadline < 7d, sorted by urgency x tier)
+- [x] Referral CTA with UTM tracking (utm_source/medium/campaign/content)
+- [x] PR badge + reward description on referral buttons
+- [x] Twitter follow link + Share via Share API
+- [x] Deadline push notifications (7d, 3d, 1d, 0d at 9:00 AM)
+- [x] Auto-schedule on track, auto-cancel on untrack
+- [x] Notification permission request on first launch
+
+### Sprint 3: Polish & Launch [NOT STARTED]
+- [ ] UI/UX polish and animation
+- [ ] App icon and branding assets
+- [ ] Onboarding flow (first-time user guide)
+- [ ] Persist store to Supabase (sync wallets, tasks, campaigns)
+- [ ] E2E testing
+- [ ] App Store submission (iOS)
+- [ ] Google Play submission (Android)
+- [ ] Landing page (airhunt.app)
+
 ---
 
 ## Development Commands
