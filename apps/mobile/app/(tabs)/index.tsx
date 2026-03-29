@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, RefreshControl } from "react-native";
+import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "expo-router";
 import { useStore } from "../../lib/store";
 import { colors, spacing, fontSize, borderRadius, tierColor, tierBgColor } from "../../lib/theme";
@@ -89,7 +90,18 @@ function CampaignCard({ campaign, isTracked, onToggleTrack }: {
 }
 
 export default function DiscoverScreen() {
-  const { campaigns, userCampaignIds, addUserCampaign, removeUserCampaign } = useStore();
+  const { campaigns, userCampaignIds, addUserCampaign, removeUserCampaign, syncCampaigns, isLoading, lastSyncAt } = useStore();
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    syncCampaigns();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await syncCampaigns();
+    setRefreshing(false);
+  }, [syncCampaigns]);
 
   const activeCampaigns = campaigns
     .filter((c) => !c.tgeCompleted)
@@ -105,13 +117,25 @@ export default function DiscoverScreen() {
     });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
+        />
+      }
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.heroTitle}>Airdrop Opportunities</Text>
         <Text style={styles.heroSub}>
-          {activeCampaigns.length} active campaigns | Sorted by tier and deadline
+          {activeCampaigns.length} active campaigns{lastSyncAt ? ` | Synced from Claudex` : ""}
         </Text>
+        {isLoading && <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.sm }} />}
       </View>
 
       {/* Campaign Cards */}

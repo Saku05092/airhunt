@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import type { Campaign, Wallet, WalletTaskStatus, DashboardStats } from "./types";
+import { fetchActiveCampaigns, apiCampaignToInternal } from "./api";
 
-// Sample data for MVP development
-const SAMPLE_CAMPAIGNS: Campaign[] = [
+// Fallback sample data (used when API is unavailable)
+const FALLBACK_CAMPAIGNS: Campaign[] = [
   {
     id: "edgex",
     name: "edgeX",
@@ -23,78 +24,28 @@ const SAMPLE_CAMPAIGNS: Campaign[] = [
     deadline: "2026-03-31",
     riskLevel: "low",
     tasks: [
-      { id: "edgex-1", campaignId: "edgex", title: "XP登録を完了", description: "3/30までに登録", sortOrder: 0, isTemplate: true },
-      { id: "edgex-2", campaignId: "edgex", title: "edgeXで取引してXPを獲得", description: "取引量に応じてXP付与", sortOrder: 1, isTemplate: true },
-      { id: "edgex-3", campaignId: "edgex", title: "リファーラルで友人招待", description: "1/5ポイント+30%手数料還元", sortOrder: 2, isTemplate: true },
-      { id: "edgex-4", campaignId: "edgex", title: "Pre-TGE Seasonに参加", description: "XPが1:1でEDGEトークンに変換", sortOrder: 3, isTemplate: true },
-    ],
-  },
-  {
-    id: "opensea",
-    name: "OpenSea",
-    ticker: "SEA",
-    category: "NFT",
-    chain: "Ethereum",
-    tier: "S",
-    status: "active",
-    tgeCompleted: false,
-    description: "最大手NFTマーケットプレイス。SEAトークン50%コミュニティ配布予定。TGE延期中。",
-    estimatedValue: "$500-5,000",
-    fundingRaised: "$423M",
-    backers: ["a16z", "Paradigm", "Coatue"],
-    website: "https://opensea.io",
-    twitter: "@opensea",
-    referralLink: "",
-    referralReward: "",
-    deadline: "",
-    riskLevel: "low",
-    tasks: [
-      { id: "os-1", campaignId: "opensea", title: "OpenSeaでNFT取引", description: "複数カテゴリで取引実績を作る", sortOrder: 0, isTemplate: true },
-      { id: "os-2", campaignId: "opensea", title: "リワードプログラム参加", description: "公式のリワードプログラムに登録", sortOrder: 1, isTemplate: true },
-      { id: "os-3", campaignId: "opensea", title: "延期中だが活動実績を積む", description: "TGE日は未定だがアクティビティを継続", sortOrder: 2, isTemplate: true },
-    ],
-  },
-  {
-    id: "linea",
-    name: "Linea",
-    ticker: "",
-    category: "L2",
-    chain: "Ethereum L2",
-    tier: "A",
-    status: "active",
-    tgeCompleted: false,
-    description: "ConsenSys開発のzkEVM L2。LXPポイントプログラム進行中。MetaMask Rewards連携。",
-    estimatedValue: "$200-1,500",
-    fundingRaised: "ConsenSys ($725M)",
-    backers: ["ConsenSys", "Microsoft", "SoftBank"],
-    website: "https://linea.build",
-    twitter: "@LineaBuild",
-    referralLink: "",
-    referralReward: "",
-    deadline: "",
-    riskLevel: "low",
-    tasks: [
-      { id: "linea-1", campaignId: "linea", title: "Lineaにブリッジ", description: "ETHをLineaにブリッジ", sortOrder: 0, isTemplate: true },
-      { id: "linea-2", campaignId: "linea", title: "エコシステムDAppsを利用", description: "DEX、レンディング等を利用", sortOrder: 1, isTemplate: true },
-      { id: "linea-3", campaignId: "linea", title: "MetaMask Rewardsポイント獲得", description: "MetaMaskでスワップしてポイント取得", sortOrder: 2, isTemplate: true },
+      { id: "edgex-0", campaignId: "edgex", title: "XP登録を完了", description: "3/30までに登録", sortOrder: 0, isTemplate: true },
+      { id: "edgex-1", campaignId: "edgex", title: "edgeXで取引してXPを獲得", description: "", sortOrder: 1, isTemplate: true },
+      { id: "edgex-2", campaignId: "edgex", title: "リファーラルで友人招待", description: "", sortOrder: 2, isTemplate: true },
     ],
   },
 ];
 
 interface AppState {
-  // Campaigns
+  // Data
   readonly campaigns: readonly Campaign[];
   readonly userCampaignIds: readonly string[];
+  readonly wallets: readonly Wallet[];
+  readonly taskStatuses: readonly WalletTaskStatus[];
+  readonly isLoading: boolean;
+  readonly lastSyncAt: string | null;
+
+  // Actions
+  syncCampaigns: () => Promise<void>;
   addUserCampaign: (campaignId: string) => void;
   removeUserCampaign: (campaignId: string) => void;
-
-  // Wallets
-  readonly wallets: readonly Wallet[];
   addWallet: (wallet: Wallet) => void;
   removeWallet: (walletId: string) => void;
-
-  // Task completion
-  readonly taskStatuses: readonly WalletTaskStatus[];
   toggleTask: (walletId: string, taskId: string) => void;
 
   // Computed
@@ -104,14 +55,36 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set, get) => ({
-  campaigns: SAMPLE_CAMPAIGNS,
-  userCampaignIds: ["edgex", "opensea", "linea"],
-
+  campaigns: FALLBACK_CAMPAIGNS,
+  userCampaignIds: [],
   wallets: [
     { id: "w1", address: "0x0000...0000", chain: "ethereum", label: "Main", isPrimary: true },
   ],
-
   taskStatuses: [],
+  isLoading: false,
+  lastSyncAt: null,
+
+  syncCampaigns: async () => {
+    set({ isLoading: true });
+    try {
+      const apiCampaigns = await fetchActiveCampaigns();
+      if (apiCampaigns.length > 0) {
+        const campaigns = apiCampaigns.map(apiCampaignToInternal);
+        set({
+          campaigns,
+          isLoading: false,
+          lastSyncAt: new Date().toISOString(),
+        });
+        console.log(`[AirHunt] Synced ${campaigns.length} campaigns from Claudex`);
+      } else {
+        set({ isLoading: false });
+        console.log("[AirHunt] No campaigns from API, using fallback data");
+      }
+    } catch (error) {
+      set({ isLoading: false });
+      console.warn("[AirHunt] Sync failed:", error);
+    }
+  },
 
   addUserCampaign: (campaignId) =>
     set((state) => ({
@@ -180,7 +153,7 @@ export const useStore = create<AppState>((set, get) => ({
     const totalTasks = tracked.reduce((sum, c) => sum + c.tasks.length * state.wallets.length, 0);
     const completedTasks = state.taskStatuses.filter((s) => s.completed).length;
     const upcomingDeadlines = tracked.filter(
-      (c) => c.deadline && new Date(c.deadline).getTime() - Date.now() < 14 * 24 * 60 * 60 * 1000
+      (c) => c.deadline && new Date(c.deadline).getTime() - Date.now() < 14 * 24 * 60 * 60 * 1000 && new Date(c.deadline).getTime() > Date.now()
     ).length;
 
     return {
