@@ -67,6 +67,10 @@ export default function RootLayout() {
           name="campaign/[id]"
           options={{ title: "", presentation: "card" }}
         />
+        <Stack.Screen
+          name="wallet/[id]"
+          options={{ title: "Wallet Details" }}
+        />
       </Stack>
     </>
   );

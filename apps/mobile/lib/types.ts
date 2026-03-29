@@ -57,3 +57,33 @@ export interface DashboardStats {
   readonly totalTasks: number;
   readonly upcomingDeadlines: number;
 }
+
+export interface ProtocolInteraction {
+  readonly address: string;
+  readonly name: string;
+  readonly txCount: number;
+  readonly lastInteraction: string;
+}
+
+export interface OnchainActivity {
+  readonly address: string;
+  readonly chain: string;
+  readonly totalTransactions: number;
+  readonly firstActivity: string | null;
+  readonly lastActivity: string | null;
+  readonly uniqueContracts: number;
+  readonly totalGasUsedETH: string;
+  readonly bridgeTransactions: number;
+  readonly swapTransactions: number;
+  readonly nftMints: number;
+  readonly protocols: readonly ProtocolInteraction[];
+  readonly fetchedAt: string;
+}
+
+export interface WalletSummary {
+  readonly address: string;
+  readonly chains: readonly OnchainActivity[];
+  readonly totalTxAcrossChains: number;
+  readonly activeChains: number;
+  readonly estimatedGasSpentUSD: string;
+}

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Campaign, Wallet, WalletTaskStatus, DashboardStats } from "./types";
+import type { Campaign, Wallet, WalletTaskStatus, DashboardStats, WalletSummary } from "./types";
 import { fetchActiveCampaigns, apiCampaignToInternal } from "./api";
 import { scheduleDeadlineReminders, cancelCampaignReminders } from "./notifications";
 import {
@@ -47,6 +47,8 @@ interface AppState {
   readonly userCampaignIds: readonly string[];
   readonly wallets: readonly Wallet[];
   readonly taskStatuses: readonly WalletTaskStatus[];
+  readonly walletAnalytics: Readonly<Record<string, WalletSummary>>;
+  readonly scanningWallets: readonly string[];
   readonly isLoading: boolean;
   readonly lastSyncAt: string | null;
   readonly userId: string | null;
@@ -61,6 +63,8 @@ interface AppState {
   removeWallet: (walletId: string) => void;
   toggleTask: (walletId: string, taskId: string) => void;
   addCustomTask: (campaignId: string, title: string, description: string) => void;
+  setWalletAnalytics: (walletId: string, summary: WalletSummary) => void;
+  setScanningWallet: (walletId: string, scanning: boolean) => void;
 
   // Computed
   getDashboardStats: () => DashboardStats;
@@ -75,6 +79,8 @@ export const useStore = create<AppState>((set, get) => ({
     { id: "w1", address: "0x0000...0000", chain: "ethereum", label: "Main", isPrimary: true },
   ],
   taskStatuses: [],
+  walletAnalytics: {},
+  scanningWallets: [],
   isLoading: false,
   lastSyncAt: null,
   userId: null,
@@ -120,10 +126,10 @@ export const useStore = create<AppState>((set, get) => ({
           isLoading: false,
           lastSyncAt: new Date().toISOString(),
         });
-        console.log(`[AirHunt] Synced ${campaigns.length} campaigns from Claudex`);
+        // Synced successfully
       } else {
         set({ isLoading: false });
-        console.log("[AirHunt] No campaigns from API, using fallback data");
+        // Using fallback data
       }
     } catch (error) {
       set({ isLoading: false });
@@ -246,6 +252,20 @@ export const useStore = create<AppState>((set, get) => ({
         console.warn("[AirHunt] Failed to save custom task:", err),
       );
     }
+  },
+
+  setWalletAnalytics: (walletId, summary) => {
+    set((state) => ({
+      walletAnalytics: { ...state.walletAnalytics, [walletId]: summary },
+    }));
+  },
+
+  setScanningWallet: (walletId, scanning) => {
+    set((state) => ({
+      scanningWallets: scanning
+        ? [...state.scanningWallets, walletId]
+        : state.scanningWallets.filter((id) => id !== walletId),
+    }));
   },
 
   getTaskStatus: (walletId, taskId) => {

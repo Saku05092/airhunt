@@ -272,6 +272,64 @@ export default function DashboardScreen() {
         );
       })}
 
+      {/* Wallet Comparison */}
+      {wallets.length >= 2 && trackedCampaigns.length > 0 && (
+        <View style={styles.comparisonSection}>
+          <Text style={styles.sectionTitle}>WALLET COMPARISON</Text>
+          {trackedCampaigns.map((campaign) => {
+            const tColor = tierColor(campaign.tier);
+            const walletProgresses = wallets.map((w) => ({
+              wallet: w,
+              progress: getCampaignProgress(campaign.id, w.id),
+            }));
+            const maxCompleted = Math.max(
+              ...walletProgresses.map((wp) => wp.progress.completed),
+            );
+
+            return (
+              <View key={campaign.id} style={styles.comparisonCard}>
+                <View style={styles.comparisonHeader}>
+                  <View style={[styles.comparisonTierDot, { backgroundColor: tColor }]} />
+                  <Text style={[styles.comparisonCampaignName, { color: tColor }]}>
+                    {campaign.name}
+                  </Text>
+                </View>
+                {walletProgresses.map((wp) => {
+                  const isBehind =
+                    wp.progress.completed < maxCompleted && maxCompleted > 0;
+                  return (
+                    <View key={wp.wallet.id} style={styles.comparisonRow}>
+                      <Text
+                        style={[
+                          styles.comparisonWalletLabel,
+                          isBehind && styles.comparisonWalletBehind,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {wp.wallet.label}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.comparisonTaskCount,
+                          isBehind && styles.comparisonTaskCountBehind,
+                        ]}
+                      >
+                        {wp.progress.completed}/{wp.progress.total} tasks
+                      </Text>
+                      {isBehind && (
+                        <View style={styles.behindBadge}>
+                          <Text style={styles.behindBadgeText}>Behind</Text>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })}
+        </View>
+      )}
+
       <Text style={styles.footer}>Tap a campaign to manage tasks per wallet</Text>
     </ScrollView>
   );
@@ -420,6 +478,61 @@ const styles = StyleSheet.create({
   progressMetaText: { color: colors.textMuted, fontSize: fontSize.xxs },
   completedBadge: { color: colors.success, fontSize: fontSize.xxs, fontWeight: "700" },
   inProgressText: { color: colors.primary, fontSize: fontSize.xxs, fontWeight: "600" },
+
+  // Wallet comparison
+  comparisonSection: { marginTop: spacing.xl },
+  comparisonCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.sm,
+    gap: spacing.sm,
+  },
+  comparisonHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  comparisonTierDot: { width: 8, height: 8, borderRadius: 4 },
+  comparisonCampaignName: {
+    fontSize: fontSize.sm,
+    fontWeight: "700",
+  },
+  comparisonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingLeft: spacing.lg,
+  },
+  comparisonWalletLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.xs,
+    fontWeight: "600",
+    flex: 1,
+  },
+  comparisonWalletBehind: {
+    color: colors.accent,
+  },
+  comparisonTaskCount: {
+    color: colors.text,
+    fontSize: fontSize.xs,
+    fontWeight: "700",
+  },
+  comparisonTaskCountBehind: {
+    color: colors.accent,
+  },
+  behindBadge: {
+    backgroundColor: colors.accentBg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: borderRadius.sm,
+  },
+  behindBadgeText: {
+    color: colors.accent,
+    fontSize: fontSize.xxs,
+    fontWeight: "700",
+  },
 
   footer: { color: colors.textMuted, fontSize: fontSize.xxs, textAlign: "center", marginTop: spacing.xl },
 });
