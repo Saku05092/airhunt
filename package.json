@@ -1,0 +1,17 @@
+{
+  "name": "airhunt",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "cd apps/mobile && npx expo start",
+    "web": "cd apps/web && npm run dev",
+    "api": "cd packages/api && npm run dev",
+    "db:migrate": "cd packages/db && npx prisma migrate dev",
+    "db:studio": "cd packages/db && npx prisma studio",
+    "typecheck": "tsc --noEmit"
+  }
+}

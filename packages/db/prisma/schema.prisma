@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  wallets        Wallet[]
+  userCampaigns  UserCampaign[]
+  notifications  Notification[]
+
+  @@map("users")
+}
+
+enum Plan {
+  FREE
+  PRO
+  UNLIMITED
+}
+
+// ============================================================
+// WALLETS
+// ============================================================
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  address   String
+  chain     Chain
+  label     String   @default("")
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletTasks WalletTask[]
+
+  @@unique([userId, address, chain])
+  @@map("wallets")
+}
+
+enum Chain {
+  ETHEREUM
+  ARBITRUM
+  OPTIMISM
+  BASE
+  POLYGON
+  SOLANA
+}
+
+// ============================================================
+// CAMPAIGNS (Airdrop Campaigns)
+// ============================================================
+
+model Campaign {
+  id             String         @id @default(cuid())
+  name           String
+  ticker         String         @default("")
+  category       String
+  chain          String
+  tier           Tier
+  status         CampaignStatus @default(ACTIVE)
+  tgeCompleted   Boolean        @default(false) @map("tge_completed")
+  description    String
+  estimatedValue String         @default("") @map("estimated_value")
+  fundingRaised  String         @default("") @map("funding_raised")
+  backers        String[]       @default([])
+  website        String         @default("")
+  twitter        String         @default("")
+  referralLink   String         @default("") @map("referral_link")
+  referralReward String         @default("") @map("referral_reward")
+  riskLevel      RiskLevel      @default(MEDIUM) @map("risk_level")
+  deadline       DateTime?
+  source         String         @default("claudex")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  tasks         CampaignTask[]
+  userCampaigns UserCampaign[]
+
+  @@map("campaigns")
+}
+
+enum Tier {
+  S
+  A
+  B
+  C
+}
+
+enum CampaignStatus {
+  ACTIVE
+  UPCOMING
+  ENDED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// ============================================================
+// CAMPAIGN TASKS (Template tasks per campaign)
+// ============================================================
+
+model CampaignTask {
+  id          String  @id @default(cuid())
+  campaignId  String  @map("campaign_id")
+  title       String
+  description String  @default("")
+  sortOrder   Int     @default(0) @map("sort_order")
+  isTemplate  Boolean @default(true) @map("is_template")
+  createdBy   String? @map("created_by")
+
+  campaign    Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  walletTasks WalletTask[]
+
+  @@map("campaign_tasks")
+}
+
+// ============================================================
+// WALLET TASKS (Task completion per wallet)
+// ============================================================
+
+model WalletTask {
+  id          String    @id @default(cuid())
+  walletId    String    @map("wallet_id")
+  taskId      String    @map("task_id")
+  completed   Boolean   @default(false)
+  completedAt DateTime? @map("completed_at")
+  notes       String    @default("")
+
+  wallet Wallet       @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  task   CampaignTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([walletId, taskId])
+  @@map("wallet_tasks")
+}
+
+// ============================================================
+// USER CAMPAIGNS (User's tracked campaigns)
+// ============================================================
+
+model UserCampaign {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  campaignId       String   @map("campaign_id")
+  priorityOverride Int?     @map("priority_override")
+  notes            String   @default("")
+  addedAt          DateTime @default(now()) @map("added_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, campaignId])
+  @@map("user_campaigns")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id          String             @id @default(cuid())
+  userId      String             @map("user_id")
+  campaignId  String?            @map("campaign_id")
+  type        NotificationType
+  title       String
+  body        String
+  scheduledAt DateTime           @map("scheduled_at")
+  sentAt      DateTime?          @map("sent_at")
+  status      NotificationStatus @default(PENDING)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([scheduledAt, status])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  DEADLINE_7D
+  DEADLINE_3D
+  DEADLINE_1D
+  DEADLINE_TODAY
+  NEW_CAMPAIGN
+  TASK_REMINDER
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
