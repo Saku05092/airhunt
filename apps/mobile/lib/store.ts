@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Campaign, Wallet, WalletTaskStatus, DashboardStats } from "./types";
 import { fetchActiveCampaigns, apiCampaignToInternal } from "./api";
+import { scheduleDeadlineReminders, cancelCampaignReminders } from "./notifications";
 
 // Fallback sample data (used when API is unavailable)
 const FALLBACK_CAMPAIGNS: Campaign[] = [
@@ -87,15 +88,22 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  addUserCampaign: (campaignId) =>
+  addUserCampaign: (campaignId) => {
+    const campaign = get().campaigns.find((c) => c.id === campaignId);
+    if (campaign?.deadline) {
+      scheduleDeadlineReminders(campaign).catch(() => {});
+    }
     set((state) => ({
       userCampaignIds: [...state.userCampaignIds, campaignId],
-    })),
+    }));
+  },
 
-  removeUserCampaign: (campaignId) =>
+  removeUserCampaign: (campaignId) => {
+    cancelCampaignReminders(campaignId).catch(() => {});
     set((state) => ({
       userCampaignIds: state.userCampaignIds.filter((id) => id !== campaignId),
-    })),
+    }));
+  },
 
   addWallet: (wallet) =>
     set((state) => ({

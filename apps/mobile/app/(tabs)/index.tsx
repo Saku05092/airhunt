@@ -2,6 +2,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, Refre
 import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "expo-router";
 import { useStore } from "../../lib/store";
+import { requestPermissions } from "../../lib/notifications";
 import { colors, spacing, fontSize, borderRadius, tierColor, tierBgColor } from "../../lib/theme";
 
 function daysUntil(dateStr: string): number | null {
@@ -95,6 +96,7 @@ export default function DiscoverScreen() {
 
   useEffect(() => {
     syncCampaigns();
+    requestPermissions();
   }, []);
 
   const onRefresh = useCallback(async () => {
