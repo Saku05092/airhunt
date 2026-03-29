@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { colors } from "../lib/theme";
+import { colors, fontSize } from "../lib/theme";
 
 export default function RootLayout() {
   return (
@@ -9,15 +9,17 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
           headerTintColor: colors.text,
-          headerTitleStyle: { fontWeight: "700" },
+          headerTitleStyle: { fontWeight: "700", fontSize: fontSize.lg },
           contentStyle: { backgroundColor: colors.background },
+          headerBackTitle: "Back",
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="campaign/[id]"
-          options={{ title: "Campaign Details", presentation: "card" }}
+          options={{ title: "", presentation: "card" }}
         />
       </Stack>
     </>

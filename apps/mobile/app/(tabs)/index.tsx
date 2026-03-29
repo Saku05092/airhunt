@@ -1,8 +1,7 @@
 import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { useStore } from "../../lib/store";
-import { colors, spacing, fontSize, borderRadius } from "../../lib/theme";
-import { tierColor } from "../../lib/theme";
+import { colors, spacing, fontSize, borderRadius, tierColor, tierBgColor } from "../../lib/theme";
 
 function daysUntil(dateStr: string): number | null {
   if (!dateStr) return null;
@@ -10,163 +9,199 @@ function daysUntil(dateStr: string): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-export default function DashboardScreen() {
+function CampaignCard({ campaign, isTracked, onToggleTrack }: {
+  campaign: any;
+  isTracked: boolean;
+  onToggleTrack: () => void;
+}) {
   const router = useRouter();
-  const { campaigns, userCampaignIds, wallets, getDashboardStats, getCampaignProgress } = useStore();
-  const stats = getDashboardStats();
-
-  const trackedCampaigns = campaigns
-    .filter((c) => userCampaignIds.includes(c.id))
-    .sort((a, b) => {
-      const tierOrder = { S: 0, A: 1, B: 2, C: 3 };
-      return tierOrder[a.tier] - tierOrder[b.tier];
-    });
-
-  const urgentCampaigns = trackedCampaigns.filter((c) => {
-    const days = daysUntil(c.deadline);
-    return days !== null && days >= 0 && days <= 14;
-  });
+  const days = daysUntil(campaign.deadline);
+  const tColor = tierColor(campaign.tier);
+  const tBg = tierBgColor(campaign.tier);
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Stats Bar */}
-      <View style={styles.statsBar}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.totalCampaigns}</Text>
-          <Text style={styles.statLabel}>Tracking</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.completedTasks}/{stats.totalTasks}</Text>
-          <Text style={styles.statLabel}>Tasks Done</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, stats.upcomingDeadlines > 0 && { color: colors.accent }]}>
-            {stats.upcomingDeadlines}
+    <Pressable
+      style={[styles.card, { borderLeftColor: tColor }]}
+      onPress={() => router.push(`/campaign/${campaign.id}`)}
+    >
+      {/* Top row: Tier + Name + Deadline */}
+      <View style={styles.cardTop}>
+        <View style={[styles.tierPill, { backgroundColor: tBg }]}>
+          <Text style={[styles.tierLabel, { color: tColor }]}>
+            {campaign.tier}
           </Text>
-          <Text style={styles.statLabel}>Deadlines</Text>
+        </View>
+        <View style={styles.cardTitleWrap}>
+          <Text style={styles.cardTitle}>{campaign.name}</Text>
+          {campaign.ticker ? (
+            <Text style={styles.cardTicker}>${campaign.ticker}</Text>
+          ) : null}
+        </View>
+        {days !== null && days >= 0 && (
+          <View style={[styles.deadlinePill, days <= 3 && styles.deadlineUrgent]}>
+            <Text style={[styles.deadlineText, days <= 3 && styles.deadlineTextUrgent]}>
+              {days}d
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Description */}
+      <Text style={styles.cardDesc} numberOfLines={2}>{campaign.description}</Text>
+
+      {/* Meta chips */}
+      <View style={styles.chipRow}>
+        <View style={styles.chip}>
+          <Text style={styles.chipText}>{campaign.category}</Text>
+        </View>
+        <View style={styles.chip}>
+          <Text style={styles.chipText}>{campaign.chain}</Text>
+        </View>
+        <View style={[styles.chip, styles.chipHighlight]}>
+          <Text style={[styles.chipText, styles.chipHighlightText]}>{campaign.estimatedValue}</Text>
         </View>
       </View>
 
-      {/* Urgent Deadlines */}
-      {urgentCampaigns.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>UPCOMING DEADLINES</Text>
-          {urgentCampaigns.map((c) => {
-            const days = daysUntil(c.deadline);
-            return (
-              <Pressable
-                key={c.id}
-                style={styles.deadlineCard}
-                onPress={() => router.push(`/campaign/${c.id}`)}
-              >
-                <View style={styles.deadlineRow}>
-                  <View style={[styles.tierBadge, { backgroundColor: tierColor(c.tier) + "20", borderColor: tierColor(c.tier) }]}>
-                    <Text style={[styles.tierText, { color: tierColor(c.tier) }]}>{c.tier}</Text>
-                  </View>
-                  <Text style={styles.deadlineName}>{c.name}</Text>
-                  <Text style={[styles.deadlineDays, { color: days !== null && days <= 3 ? colors.danger : colors.accent }]}>
-                    {days}d left
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
-
-      {/* Campaign Progress */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>PROGRESS</Text>
-        {trackedCampaigns.map((c) => {
-          const wallet = wallets[0];
-          if (!wallet) return null;
-          const progress = getCampaignProgress(c.id, wallet.id);
-          const pct = progress.total > 0 ? progress.completed / progress.total : 0;
-
-          return (
-            <Pressable
-              key={c.id}
-              style={styles.progressCard}
-              onPress={() => router.push(`/campaign/${c.id}`)}
-            >
-              <View style={styles.progressHeader}>
-                <View style={[styles.tierBadgeSmall, { backgroundColor: tierColor(c.tier) + "20" }]}>
-                  <Text style={[styles.tierTextSmall, { color: tierColor(c.tier) }]}>{c.tier}</Text>
-                </View>
-                <Text style={styles.progressName}>{c.name}</Text>
-                <Text style={styles.progressPct}>{Math.round(pct * 100)}%</Text>
-              </View>
-              <View style={styles.progressBarBg}>
-                <View style={[styles.progressBarFill, { width: `${pct * 100}%`, backgroundColor: tierColor(c.tier) }]} />
-              </View>
-              <Text style={styles.progressDetail}>
-                {progress.completed}/{progress.total} tasks | {c.category} | {c.chain}
-              </Text>
-            </Pressable>
-          );
-        })}
+      {/* Quick tasks preview */}
+      <View style={styles.taskPreview}>
+        {campaign.tasks.slice(0, 3).map((task: any, i: number) => (
+          <View key={i} style={styles.taskPreviewRow}>
+            <View style={styles.taskDot} />
+            <Text style={styles.taskPreviewText} numberOfLines={1}>{task.title}</Text>
+          </View>
+        ))}
+        {campaign.tasks.length > 3 && (
+          <Text style={styles.taskMoreText}>+{campaign.tasks.length - 3} more</Text>
+        )}
       </View>
+
+      {/* Action button */}
+      <Pressable
+        style={[styles.actionBtn, isTracked && styles.actionBtnTracked]}
+        onPress={(e) => { e.stopPropagation?.(); onToggleTrack(); }}
+      >
+        <Text style={[styles.actionBtnText, isTracked && styles.actionBtnTextTracked]}>
+          {isTracked ? "Tracking" : "Start Tracking"}
+        </Text>
+      </Pressable>
+    </Pressable>
+  );
+}
+
+export default function DiscoverScreen() {
+  const { campaigns, userCampaignIds, addUserCampaign, removeUserCampaign } = useStore();
+
+  const activeCampaigns = campaigns
+    .filter((c) => !c.tgeCompleted)
+    .sort((a, b) => {
+      const tierOrder = { S: 0, A: 1, B: 2, C: 3 };
+      const tierDiff = tierOrder[a.tier] - tierOrder[b.tier];
+      if (tierDiff !== 0) return tierDiff;
+      // Deadline sooner first
+      if (a.deadline && b.deadline) return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+      if (a.deadline) return -1;
+      if (b.deadline) return 1;
+      return 0;
+    });
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.heroTitle}>Airdrop Opportunities</Text>
+        <Text style={styles.heroSub}>
+          {activeCampaigns.length} active campaigns | Sorted by tier and deadline
+        </Text>
+      </View>
+
+      {/* Campaign Cards */}
+      {activeCampaigns.map((campaign) => {
+        const isTracked = userCampaignIds.includes(campaign.id);
+        return (
+          <CampaignCard
+            key={campaign.id}
+            campaign={campaign}
+            isTracked={isTracked}
+            onToggleTrack={() =>
+              isTracked
+                ? removeUserCampaign(campaign.id)
+                : addUserCampaign(campaign.id)
+            }
+          />
+        );
+      })}
+
+      <Text style={styles.footer}>DYOR - NFA. All information is for reference only.</Text>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  statsBar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    padding: spacing.lg,
+  content: { padding: spacing.lg, paddingBottom: 40 },
+
+  header: { marginBottom: spacing.xl },
+  heroTitle: { color: colors.text, fontSize: fontSize.xxl, fontWeight: "800", letterSpacing: -0.5 },
+  heroSub: { color: colors.textMuted, fontSize: fontSize.sm, marginTop: spacing.xs },
+
+  card: {
     backgroundColor: colors.surface,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  statItem: { alignItems: "center" },
-  statValue: { color: colors.text, fontSize: fontSize.xl, fontWeight: "700" },
-  statLabel: { color: colors.textMuted, fontSize: fontSize.xs, marginTop: 2 },
-  section: { marginTop: spacing.lg, paddingHorizontal: spacing.md },
-  sectionTitle: {
-    color: colors.textMuted,
-    fontSize: fontSize.xs,
-    fontWeight: "700",
-    letterSpacing: 1,
-    marginBottom: spacing.sm,
-  },
-  deadlineCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.sm,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.lg,
     borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
+    gap: spacing.md,
   },
-  deadlineRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
-  tierBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  tierText: { fontSize: fontSize.xs, fontWeight: "700" },
-  deadlineName: { flex: 1, color: colors.text, fontSize: fontSize.md, fontWeight: "600" },
-  deadlineDays: { fontSize: fontSize.sm, fontWeight: "700" },
-  progressCard: {
-    backgroundColor: colors.surface,
+
+  cardTop: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  tierPill: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
     borderRadius: borderRadius.sm,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
   },
-  progressHeader: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
-  tierBadgeSmall: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
-  tierTextSmall: { fontSize: 10, fontWeight: "700" },
-  progressName: { flex: 1, color: colors.text, fontSize: fontSize.md, fontWeight: "600" },
-  progressPct: { color: colors.textSecondary, fontSize: fontSize.sm, fontWeight: "600" },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: colors.surfaceLight,
-    borderRadius: 3,
-    overflow: "hidden",
+  tierLabel: { fontSize: fontSize.xs, fontWeight: "800", letterSpacing: 0.5 },
+  cardTitleWrap: { flex: 1, flexDirection: "row", alignItems: "baseline", gap: spacing.xs },
+  cardTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: "700" },
+  cardTicker: { color: colors.textMuted, fontSize: fontSize.sm },
+
+  deadlinePill: {
+    backgroundColor: colors.accentBg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: borderRadius.sm,
   },
-  progressBarFill: { height: "100%", borderRadius: 3 },
-  progressDetail: { color: colors.textMuted, fontSize: fontSize.xs, marginTop: spacing.xs },
+  deadlineUrgent: { backgroundColor: colors.dangerBg },
+  deadlineText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: "700" },
+  deadlineTextUrgent: { color: colors.danger },
+
+  cardDesc: { color: colors.textSecondary, fontSize: fontSize.sm, lineHeight: 20 },
+
+  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
+  chip: {
+    backgroundColor: colors.surfaceElevated,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: borderRadius.sm,
+  },
+  chipText: { color: colors.textMuted, fontSize: fontSize.xxs, fontWeight: "500" },
+  chipHighlight: { backgroundColor: colors.successBg },
+  chipHighlightText: { color: colors.success },
+
+  taskPreview: { gap: spacing.xs },
+  taskPreviewRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  taskDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.textMuted },
+  taskPreviewText: { color: colors.textSecondary, fontSize: fontSize.xs, flex: 1 },
+  taskMoreText: { color: colors.textMuted, fontSize: fontSize.xxs, paddingLeft: spacing.lg },
+
+  actionBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+  },
+  actionBtnTracked: { backgroundColor: "transparent", borderWidth: 1, borderColor: colors.primary },
+  actionBtnText: { color: colors.text, fontSize: fontSize.sm, fontWeight: "700" },
+  actionBtnTextTracked: { color: colors.primary },
+
+  footer: { color: colors.textMuted, fontSize: fontSize.xxs, textAlign: "center", marginTop: spacing.xl },
 });
