@@ -15,10 +15,10 @@ AirHunt is a mobile-first airdrop activity management app for DeFi farmers. It s
 
 | Layer | Technology | Status |
 |---|---|---|
-| Mobile | React Native + Expo (TypeScript) | Not started |
+| Mobile | React Native + Expo (TypeScript) | In progress |
 | Web | Next.js | Not started |
 | Backend API | Express + tRPC | Not started |
-| Database | PostgreSQL (Supabase) | Not started |
+| Database | PostgreSQL (Prisma v7) | Schema done |
 | Auth | Supabase Auth (Google/Apple/Email) | Not started |
 | Push Notifications | Expo Push Notifications | Not started |
 | State Management | Zustand | Not started |
@@ -40,20 +40,20 @@ AirHunt is a mobile-first airdrop activity management app for DeFi farmers. It s
 ### Phase 1: MVP [IN PROGRESS]
 
 #### 1a: Foundation (Week 1)
-- [ ] Expo project initialization
-- [ ] Monorepo setup (apps/mobile, apps/web, packages/)
+- [x] Expo project initialization (React Native + TypeScript)
+- [x] Monorepo setup (apps/mobile, apps/web, packages/)
 - [ ] Supabase project setup
-- [ ] Database schema design (Prisma)
+- [x] Database schema design (Prisma v7 + PostgreSQL)
 - [ ] Auth (Google/Apple/Email)
-- [ ] Basic navigation structure
+- [x] Basic navigation structure (Expo Router, 4 tabs)
 
 #### 1b: Core Features (Week 2-3)
-- [ ] Airdrop campaign management (CRUD)
-- [ ] Claudex data import
-- [ ] Task management (per campaign x per wallet)
-- [ ] Template tasks from Claudex
+- [x] Airdrop campaign management (list/detail views)
+- [ ] Claudex data import API
+- [x] Task management (per campaign x per wallet, checklist UI)
+- [x] Template tasks from sample data
 - [ ] User custom task creation
-- [ ] Checklist UI with completion tracking
+- [x] Checklist UI with completion tracking
 
 #### 1c: Wallet & Intelligence (Week 3-4)
 - [ ] Wallet address registration (multi-wallet)
