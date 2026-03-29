@@ -85,7 +85,25 @@ export const useStore = create<AppState>((set, get) => ({
     const { userId } = get();
     if (!userId) return;
     try {
-      await syncFromSupabase(userId);
+      const result = await syncFromSupabase(userId);
+      if (!result) return;
+
+      // Merge custom tasks into campaigns
+      const campaigns = get().campaigns.map((campaign) => {
+        const extras = result.customTasks.filter((t) => t.campaignId === campaign.id);
+        if (extras.length === 0) return campaign;
+        const existingIds = new Set(campaign.tasks.map((t) => t.id));
+        const newTasks = extras.filter((t) => !existingIds.has(t.id));
+        if (newTasks.length === 0) return campaign;
+        return { ...campaign, tasks: [...campaign.tasks, ...newTasks] };
+      });
+
+      set({
+        wallets: result.wallets,
+        userCampaignIds: result.userCampaignIds,
+        taskStatuses: result.taskStatuses,
+        campaigns,
+      });
     } catch (error) {
       console.warn("[AirHunt] Failed to load from Supabase:", error);
     }

@@ -1,6 +1,5 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
-import type { Wallet, WalletTaskStatus, CampaignTask } from "./types";
-import { useStore } from "./store";
+import type { Campaign, Wallet, WalletTaskStatus, CampaignTask } from "./types";
 
 function guardConfigured(): boolean {
   if (!isSupabaseConfigured()) {
@@ -14,8 +13,15 @@ function guardConfigured(): boolean {
 // Read helpers
 // ---------------------------------------------------------------------------
 
-export async function syncFromSupabase(userId: string): Promise<void> {
-  if (!guardConfigured()) return;
+export interface SyncResult {
+  readonly wallets: readonly Wallet[];
+  readonly userCampaignIds: readonly string[];
+  readonly taskStatuses: readonly WalletTaskStatus[];
+  readonly customTasks: readonly CampaignTask[];
+}
+
+export async function syncFromSupabase(userId: string): Promise<SyncResult | null> {
+  if (!guardConfigured()) return null;
   const [walletsRes, campaignsRes, customTasksRes, walletTasksRes] =
     await Promise.all([
       supabase.from("wallets").select("*").eq("user_id", userId),
@@ -58,22 +64,7 @@ export async function syncFromSupabase(userId: string): Promise<void> {
     isTemplate: false,
   }));
 
-  const state = useStore.getState();
-  const campaignsWithCustomTasks = state.campaigns.map((campaign) => {
-    const extras = customTasks.filter((t) => t.campaignId === campaign.id);
-    if (extras.length === 0) return campaign;
-    const existingIds = new Set(campaign.tasks.map((t) => t.id));
-    const newTasks = extras.filter((t) => !existingIds.has(t.id));
-    if (newTasks.length === 0) return campaign;
-    return { ...campaign, tasks: [...campaign.tasks, ...newTasks] };
-  });
-
-  useStore.setState({
-    wallets,
-    userCampaignIds,
-    taskStatuses,
-    campaigns: campaignsWithCustomTasks,
-  });
+  return { wallets, userCampaignIds, taskStatuses, customTasks };
 }
 
 // ---------------------------------------------------------------------------

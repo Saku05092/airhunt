@@ -66,16 +66,23 @@ interface HealthResponse {
 }
 
 async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(10_000),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json() as Promise<T>;
 }
 
 export async function fetchActiveCampaigns(): Promise<readonly ApiCampaign[]> {
