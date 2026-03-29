@@ -5,9 +5,29 @@
  * Falls back to bundled sample data if API is unavailable.
  */
 
-const API_BASE = __DEV__
-  ? "http://localhost:3001"
-  : "https://api.claudex.app"; // Production URL TBD
+import { Platform } from "react-native";
+import Constants from "expo-constants";
+
+// In dev: mobile needs LAN IP, web can use localhost
+function getApiBase(): string {
+  if (!__DEV__) return "https://api.claudex.app"; // Production URL TBD
+
+  // Use env var if set
+  const envUrl = Constants.expoConfig?.extra?.claudexApiUrl
+    ?? process.env.EXPO_PUBLIC_CLAUDEX_API_URL;
+  if (envUrl) return envUrl;
+
+  // Web can use localhost, mobile needs LAN IP
+  if (Platform.OS === "web") return "http://localhost:3001";
+
+  // Try to get host from Expo dev server URL
+  const debuggerHost = Constants.expoConfig?.hostUri?.split(":")[0];
+  if (debuggerHost) return `http://${debuggerHost}:3001`;
+
+  return "http://localhost:3001";
+}
+
+const API_BASE = getApiBase();
 
 export interface ApiCampaign {
   readonly id: string;
