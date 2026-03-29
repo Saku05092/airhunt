@@ -1,7 +1,13 @@
 import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import { useMemo } from "react";
 import { useStore } from "../../lib/store";
-import { colors, spacing, fontSize, borderRadius, tierColor, tierBgColor } from "../../lib/theme";
+import { colors, spacing, fontSize, borderRadius, tierColor } from "../../lib/theme";
+import type { Campaign, CampaignTask } from "../../lib/types";
+
+const TIER_ORDER: Record<string, number> = { S: 0, A: 1, B: 2, C: 3 };
+const MAX_PRIORITY_ITEMS = 5;
+const URGENT_DAYS = 7;
 
 function daysUntil(dateStr: string): number | null {
   if (!dateStr) return null;
@@ -9,26 +15,84 @@ function daysUntil(dateStr: string): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-export default function DashboardScreen() {
-  const router = useRouter();
-  const { campaigns, userCampaignIds, wallets, getDashboardStats, getCampaignProgress } = useStore();
-  const stats = getDashboardStats();
+interface PriorityTask {
+  readonly campaign: Campaign;
+  readonly task: CampaignTask;
+  readonly walletLabel: string;
+  readonly daysRemaining: number;
+}
 
-  const trackedCampaigns = campaigns
-    .filter((c) => userCampaignIds.includes(c.id))
-    .sort((a, b) => {
-      // Deadline soon first, then by tier
+function usePriorityTasks(): readonly PriorityTask[] {
+  const { campaigns, userCampaignIds, wallets, getTaskStatus } = useStore();
+
+  return useMemo(() => {
+    const items: PriorityTask[] = [];
+
+    const trackedCampaigns = campaigns.filter((c) =>
+      userCampaignIds.includes(c.id)
+    );
+
+    for (const campaign of trackedCampaigns) {
+      const days = daysUntil(campaign.deadline);
+      if (days === null || days < 0 || days > URGENT_DAYS) continue;
+
+      for (const task of campaign.tasks) {
+        const walletsNeedingTask = wallets.filter(
+          (w) => !getTaskStatus(w.id, task.id)
+        );
+        if (walletsNeedingTask.length === 0) continue;
+
+        const walletLabel =
+          walletsNeedingTask.length === wallets.length
+            ? "All wallets"
+            : walletsNeedingTask.length === 1
+              ? walletsNeedingTask[0].label
+              : `${walletsNeedingTask.length} wallets`;
+
+        items.push({
+          campaign,
+          task,
+          walletLabel,
+          daysRemaining: days,
+        });
+      }
+    }
+
+    return [...items].sort((a, b) => {
+      const daysDiff = a.daysRemaining - b.daysRemaining;
+      if (daysDiff !== 0) return daysDiff;
+      return (TIER_ORDER[a.campaign.tier] ?? 4) - (TIER_ORDER[b.campaign.tier] ?? 4);
+    });
+  }, [campaigns, userCampaignIds, wallets, getTaskStatus]);
+}
+
+function useSortedTrackedCampaigns(): readonly Campaign[] {
+  const { campaigns, userCampaignIds } = useStore();
+
+  return useMemo(() => {
+    const tracked = campaigns.filter((c) => userCampaignIds.includes(c.id));
+    return [...tracked].sort((a, b) => {
       if (a.deadline && b.deadline) {
         const diff = new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
         if (diff !== 0) return diff;
       }
       if (a.deadline && !b.deadline) return -1;
       if (!a.deadline && b.deadline) return 1;
-      const tierOrder = { S: 0, A: 1, B: 2, C: 3 };
-      return tierOrder[a.tier] - tierOrder[b.tier];
+      return (TIER_ORDER[a.tier] ?? 4) - (TIER_ORDER[b.tier] ?? 4);
     });
+  }, [campaigns, userCampaignIds]);
+}
+
+export default function DashboardScreen() {
+  const router = useRouter();
+  const { wallets, getDashboardStats, getCampaignProgress } = useStore();
+  const stats = getDashboardStats();
+  const priorityTasks = usePriorityTasks();
+  const trackedCampaigns = useSortedTrackedCampaigns();
 
   const wallet = wallets[0];
+  const visiblePriorityTasks = priorityTasks.slice(0, MAX_PRIORITY_ITEMS);
+  const hasMoreTasks = priorityTasks.length > MAX_PRIORITY_ITEMS;
 
   if (trackedCampaigns.length === 0) {
     return (
@@ -44,6 +108,67 @@ export default function DashboardScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Today's Priority */}
+      <View style={styles.prioritySection}>
+        <Text style={styles.sectionTitle}>TODAY&apos;S PRIORITY</Text>
+        {visiblePriorityTasks.length === 0 ? (
+          <View style={styles.noUrgentCard}>
+            <Text style={styles.noUrgentText}>No urgent tasks</Text>
+            <Text style={styles.noUrgentSubtext}>
+              No tasks due within {URGENT_DAYS} days. You&apos;re on track.
+            </Text>
+          </View>
+        ) : (
+          <>
+            {visiblePriorityTasks.map((item) => {
+              const tColor = tierColor(item.campaign.tier);
+              return (
+                <Pressable
+                  key={`${item.campaign.id}-${item.task.id}`}
+                  style={[styles.priorityCard, { borderLeftColor: tColor }]}
+                  onPress={() => router.push(`/campaign/${item.campaign.id}`)}
+                >
+                  <View style={styles.priorityCardTop}>
+                    <View style={styles.priorityCardInfo}>
+                      <View style={styles.priorityCampaignRow}>
+                        <View style={[styles.tierDotSmall, { backgroundColor: tColor }]} />
+                        <Text style={styles.priorityCampaignName}>{item.campaign.name}</Text>
+                      </View>
+                      <Text style={styles.priorityTaskTitle} numberOfLines={1}>
+                        {item.task.title}
+                      </Text>
+                      <Text style={styles.priorityWallet}>{item.walletLabel}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.priorityDaysBadge,
+                        item.daysRemaining <= 3 && styles.priorityDaysBadgeUrgent,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.priorityDaysText,
+                          item.daysRemaining <= 3 && styles.priorityDaysTextUrgent,
+                        ]}
+                      >
+                        {item.daysRemaining}d
+                      </Text>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+            {hasMoreTasks && (
+              <Pressable style={styles.viewAllLink}>
+                <Text style={styles.viewAllText}>
+                  View all ({priorityTasks.length} tasks)
+                </Text>
+              </Pressable>
+            )}
+          </>
+        )}
+      </View>
+
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
@@ -136,6 +261,89 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48, color: colors.textMuted, marginBottom: spacing.lg },
   emptyTitle: { color: colors.text, fontSize: fontSize.xl, fontWeight: "700", marginBottom: spacing.sm },
   emptyDesc: { color: colors.textMuted, fontSize: fontSize.sm, textAlign: "center", lineHeight: 22 },
+
+  // Priority section
+  prioritySection: { marginBottom: spacing.xl },
+  sectionTitle: {
+    color: colors.textMuted,
+    fontSize: fontSize.xxs,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    marginBottom: spacing.md,
+  },
+  noUrgentCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.xl,
+    alignItems: "center",
+  },
+  noUrgentText: {
+    color: colors.success,
+    fontSize: fontSize.md,
+    fontWeight: "700",
+    marginBottom: spacing.xxs,
+  },
+  noUrgentSubtext: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+  },
+  priorityCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+    borderLeftWidth: 3,
+  },
+  priorityCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  priorityCardInfo: {
+    flex: 1,
+    marginRight: spacing.md,
+    gap: spacing.xxs,
+  },
+  priorityCampaignRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  tierDotSmall: { width: 8, height: 8, borderRadius: 4 },
+  priorityCampaignName: {
+    color: colors.textSecondary,
+    fontSize: fontSize.xxs,
+    fontWeight: "600",
+  },
+  priorityTaskTitle: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: "600",
+  },
+  priorityWallet: {
+    color: colors.textMuted,
+    fontSize: fontSize.xxs,
+  },
+  priorityDaysBadge: {
+    backgroundColor: colors.accentBg,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: borderRadius.sm,
+    minWidth: 36,
+    alignItems: "center",
+  },
+  priorityDaysBadgeUrgent: { backgroundColor: colors.dangerBg },
+  priorityDaysText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: "700" },
+  priorityDaysTextUrgent: { color: colors.danger },
+  viewAllLink: {
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+  },
+  viewAllText: {
+    color: colors.primary,
+    fontSize: fontSize.xs,
+    fontWeight: "600",
+  },
 
   // Stats
   statsRow: { flexDirection: "row", gap: spacing.sm, marginBottom: spacing.xl },

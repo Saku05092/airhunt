@@ -1,7 +1,17 @@
-import { View, Text, ScrollView, StyleSheet, Pressable, Linking } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView, StyleSheet, Pressable, Linking, TextInput, Share } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useStore } from "../../lib/store";
 import { colors, spacing, fontSize, borderRadius, tierColor, tierBgColor } from "../../lib/theme";
+
+function buildUtmLink(baseUrl: string, campaignId: string, source: string = "airhunt"): string {
+  const url = new URL(baseUrl);
+  url.searchParams.set("utm_source", source);
+  url.searchParams.set("utm_medium", "app");
+  url.searchParams.set("utm_campaign", campaignId);
+  url.searchParams.set("utm_content", "campaign_detail_cta");
+  return url.toString();
+}
 
 function daysUntil(dateStr: string): number | null {
   if (!dateStr) return null;
@@ -11,7 +21,10 @@ function daysUntil(dateStr: string): number | null {
 
 export default function CampaignDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { campaigns, wallets, getTaskStatus, toggleTask, userCampaignIds, addUserCampaign } = useStore();
+  const { campaigns, wallets, getTaskStatus, toggleTask, userCampaignIds, addUserCampaign, addCustomTask } = useStore();
+  const [addingTaskForWallet, setAddingTaskForWallet] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskDescription, setNewTaskDescription] = useState("");
 
   const campaign = campaigns.find((c) => c.id === id);
   if (!campaign) {
@@ -137,6 +150,60 @@ export default function CampaignDetailScreen() {
                 </Pressable>
               );
             })}
+
+            {addingTaskForWallet === wallet.id ? (
+              <View style={styles.addTaskForm}>
+                <TextInput
+                  style={styles.addTaskInput}
+                  placeholder="Task title (required)"
+                  placeholderTextColor={colors.textMuted}
+                  value={newTaskTitle}
+                  onChangeText={setNewTaskTitle}
+                />
+                <TextInput
+                  style={styles.addTaskInput}
+                  placeholder="Description (optional)"
+                  placeholderTextColor={colors.textMuted}
+                  value={newTaskDescription}
+                  onChangeText={setNewTaskDescription}
+                />
+                <View style={styles.addTaskActions}>
+                  <Pressable
+                    style={styles.addTaskCancelBtn}
+                    onPress={() => {
+                      setAddingTaskForWallet(null);
+                      setNewTaskTitle("");
+                      setNewTaskDescription("");
+                    }}
+                  >
+                    <Text style={styles.addTaskCancelText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.addTaskSubmitBtn, !newTaskTitle.trim() && styles.addTaskSubmitBtnDisabled]}
+                    onPress={() => {
+                      if (!newTaskTitle.trim()) return;
+                      addCustomTask(campaign.id, newTaskTitle.trim(), newTaskDescription.trim());
+                      setAddingTaskForWallet(null);
+                      setNewTaskTitle("");
+                      setNewTaskDescription("");
+                    }}
+                  >
+                    <Text style={styles.addTaskSubmitText}>Add</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : (
+              <Pressable
+                style={styles.addTaskBtn}
+                onPress={() => {
+                  setAddingTaskForWallet(wallet.id);
+                  setNewTaskTitle("");
+                  setNewTaskDescription("");
+                }}
+              >
+                <Text style={styles.addTaskBtnText}>+ Add Task</Text>
+              </Pressable>
+            )}
           </View>
         ))}
       </View>
@@ -144,21 +211,52 @@ export default function CampaignDetailScreen() {
       {/* CTA */}
       <View style={styles.ctaSection}>
         {campaign.referralLink ? (
-          <Pressable
-            style={styles.ctaPrimary}
-            onPress={() => Linking.openURL(campaign.referralLink)}
-          >
-            <Text style={styles.ctaPrimaryText}>Register via Referral</Text>
-            <Text style={styles.prBadge}>PR</Text>
-          </Pressable>
+          <>
+            <Pressable
+              style={styles.ctaPrimary}
+              onPress={() => Linking.openURL(buildUtmLink(campaign.referralLink, campaign.id))}
+            >
+              <Text style={styles.ctaPrimaryText}>Register via Referral</Text>
+              <Text style={styles.prBadge}>PR</Text>
+            </Pressable>
+            <Text style={styles.rewardDesc}>
+              1/5 of referee points + 30% fee rebate
+            </Text>
+          </>
         ) : (
           <Pressable
             style={styles.ctaSecondary}
-            onPress={() => Linking.openURL(campaign.website)}
+            onPress={() => Linking.openURL(buildUtmLink(campaign.website, campaign.id))}
           >
             <Text style={styles.ctaSecondaryText}>Visit Official Site</Text>
           </Pressable>
         )}
+
+        {campaign.twitter ? (
+          <Pressable
+            style={styles.twitterRow}
+            onPress={() => Linking.openURL(`https://x.com/${campaign.twitter.replace(/^@/, "")}`)}
+          >
+            <Text style={styles.twitterText}>
+              Follow on X: @{campaign.twitter.replace(/^@/, "")}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {/* Share */}
+      <View style={styles.shareSection}>
+        <Text style={styles.shareLabel}>Share this opportunity</Text>
+        <Pressable
+          style={styles.shareButton}
+          onPress={() => {
+            Share.share({
+              message: `${campaign.name} - estimated ${campaign.estimatedValue}\n${campaign.website}`,
+            });
+          }}
+        >
+          <Text style={styles.shareButtonText}>Share</Text>
+        </Pressable>
       </View>
 
       <Text style={styles.disclaimer}>DYOR - NFA. All information is for reference only.</Text>
@@ -250,6 +348,54 @@ const styles = StyleSheet.create({
   taskTitleDone: { textDecorationLine: "line-through", color: colors.textMuted },
   taskDesc: { color: colors.textMuted, fontSize: fontSize.xxs, marginTop: spacing.xxs },
 
+  // Add Task
+  addTaskBtn: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    borderStyle: "dashed",
+    alignItems: "center",
+  },
+  addTaskBtnText: { color: colors.primary, fontSize: fontSize.xs, fontWeight: "600" },
+  addTaskForm: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 0.5,
+    borderTopColor: colors.border,
+    gap: spacing.sm,
+  },
+  addTaskInput: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    color: colors.text,
+    fontSize: fontSize.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  addTaskActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: spacing.sm,
+  },
+  addTaskCancelBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.sm,
+  },
+  addTaskCancelText: { color: colors.textMuted, fontSize: fontSize.sm, fontWeight: "500" },
+  addTaskSubmitBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: borderRadius.sm,
+  },
+  addTaskSubmitBtnDisabled: { opacity: 0.4 },
+  addTaskSubmitText: { color: colors.text, fontSize: fontSize.sm, fontWeight: "600" },
+
   // CTA
   ctaSection: { paddingHorizontal: spacing.lg, marginTop: spacing.xl },
   ctaPrimary: {
@@ -280,6 +426,48 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   ctaSecondaryText: { color: colors.textSecondary, fontWeight: "600", fontSize: fontSize.md },
+  rewardDesc: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+    textAlign: "center",
+    marginTop: spacing.sm,
+  },
+  twitterRow: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    alignItems: "center",
+  },
+  twitterText: {
+    color: colors.primary,
+    fontSize: fontSize.sm,
+    fontWeight: "600",
+  },
+
+  // Share
+  shareSection: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  shareLabel: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+    fontWeight: "600",
+  },
+  shareButton: {
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    alignItems: "center",
+  },
+  shareButtonText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    fontWeight: "600",
+  },
 
   disclaimer: { color: colors.textMuted, fontSize: fontSize.xxs, textAlign: "center", padding: spacing.xl },
 });

@@ -47,6 +47,7 @@ interface AppState {
   addWallet: (wallet: Wallet) => void;
   removeWallet: (walletId: string) => void;
   toggleTask: (walletId: string, taskId: string) => void;
+  addCustomTask: (campaignId: string, title: string, description: string) => void;
 
   // Computed
   getDashboardStats: () => DashboardStats;
@@ -127,6 +128,28 @@ export const useStore = create<AppState>((set, get) => ({
         ],
       };
     }),
+
+  addCustomTask: (campaignId, title, description) =>
+    set((state) => ({
+      campaigns: state.campaigns.map((c) =>
+        c.id === campaignId
+          ? {
+              ...c,
+              tasks: [
+                ...c.tasks,
+                {
+                  id: `${campaignId}-custom-${Date.now()}`,
+                  campaignId,
+                  title,
+                  description,
+                  sortOrder: c.tasks.length,
+                  isTemplate: false,
+                },
+              ],
+            }
+          : c
+      ),
+    })),
 
   getTaskStatus: (walletId, taskId) => {
     const status = get().taskStatuses.find(
