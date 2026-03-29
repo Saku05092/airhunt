@@ -1,5 +1,5 @@
-import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, RefreshControl } from "react-native";
-import { useEffect, useCallback, useState } from "react";
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, RefreshControl, Animated } from "react-native";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { useRouter } from "expo-router";
 import { useStore } from "../../lib/store";
 import { requestPermissions } from "../../lib/notifications";
@@ -11,17 +11,39 @@ function daysUntil(dateStr: string): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-function CampaignCard({ campaign, isTracked, onToggleTrack }: {
+function CampaignCard({ campaign, isTracked, onToggleTrack, index }: {
   campaign: any;
   isTracked: boolean;
   onToggleTrack: () => void;
+  index: number;
 }) {
   const router = useRouter();
   const days = daysUntil(campaign.deadline);
   const tColor = tierColor(campaign.tier);
   const tBg = tierBgColor(campaign.tier);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateAnim = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    const delay = index * 80;
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 400,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateAnim, {
+        toValue: 0,
+        duration: 400,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, translateAnim, index]);
 
   return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: translateAnim }] }}>
     <Pressable
       style={[styles.card, { borderLeftColor: tColor }]}
       onPress={() => router.push(`/campaign/${campaign.id}`)}
@@ -87,6 +109,7 @@ function CampaignCard({ campaign, isTracked, onToggleTrack }: {
         </Text>
       </Pressable>
     </Pressable>
+    </Animated.View>
   );
 }
 
@@ -141,13 +164,14 @@ export default function DiscoverScreen() {
       </View>
 
       {/* Campaign Cards */}
-      {activeCampaigns.map((campaign) => {
+      {activeCampaigns.map((campaign, index) => {
         const isTracked = userCampaignIds.includes(campaign.id);
         return (
           <CampaignCard
             key={campaign.id}
             campaign={campaign}
             isTracked={isTracked}
+            index={index}
             onToggleTrack={() =>
               isTracked
                 ? removeUserCampaign(campaign.id)

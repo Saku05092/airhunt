@@ -5,12 +5,17 @@ import { useStore } from "../../lib/store";
 import { colors, spacing, fontSize, borderRadius, tierColor, tierBgColor } from "../../lib/theme";
 
 function buildUtmLink(baseUrl: string, campaignId: string, source: string = "airhunt"): string {
-  const url = new URL(baseUrl);
-  url.searchParams.set("utm_source", source);
-  url.searchParams.set("utm_medium", "app");
-  url.searchParams.set("utm_campaign", campaignId);
-  url.searchParams.set("utm_content", "campaign_detail_cta");
-  return url.toString();
+  if (!baseUrl) return baseUrl;
+  try {
+    const url = new URL(baseUrl);
+    url.searchParams.set("utm_source", source);
+    url.searchParams.set("utm_medium", "app");
+    url.searchParams.set("utm_campaign", campaignId);
+    url.searchParams.set("utm_content", "campaign_detail_cta");
+    return url.toString();
+  } catch {
+    return baseUrl;
+  }
 }
 
 function daysUntil(dateStr: string): number | null {
@@ -214,7 +219,7 @@ export default function CampaignDetailScreen() {
           <>
             <Pressable
               style={styles.ctaPrimary}
-              onPress={() => Linking.openURL(buildUtmLink(campaign.referralLink, campaign.id))}
+              onPress={() => { Linking.openURL(buildUtmLink(campaign.referralLink, campaign.id)).catch(() => {}); }}
             >
               <Text style={styles.ctaPrimaryText}>Register via Referral</Text>
               <Text style={styles.prBadge}>PR</Text>
@@ -226,7 +231,7 @@ export default function CampaignDetailScreen() {
         ) : (
           <Pressable
             style={styles.ctaSecondary}
-            onPress={() => Linking.openURL(buildUtmLink(campaign.website, campaign.id))}
+            onPress={() => { Linking.openURL(buildUtmLink(campaign.website, campaign.id)).catch(() => {}); }}
           >
             <Text style={styles.ctaSecondaryText}>Visit Official Site</Text>
           </Pressable>
@@ -235,7 +240,7 @@ export default function CampaignDetailScreen() {
         {campaign.twitter ? (
           <Pressable
             style={styles.twitterRow}
-            onPress={() => Linking.openURL(`https://x.com/${campaign.twitter.replace(/^@/, "")}`)}
+            onPress={() => { Linking.openURL(`https://x.com/${campaign.twitter.replace(/^@/, "")}`).catch(() => {}); }}
           >
             <Text style={styles.twitterText}>
               Follow on X: @{campaign.twitter.replace(/^@/, "")}
@@ -252,7 +257,7 @@ export default function CampaignDetailScreen() {
           onPress={() => {
             Share.share({
               message: `${campaign.name} - estimated ${campaign.estimatedValue}\n${campaign.website}`,
-            });
+            }).catch(() => {});
           }}
         >
           <Text style={styles.shareButtonText}>Share</Text>

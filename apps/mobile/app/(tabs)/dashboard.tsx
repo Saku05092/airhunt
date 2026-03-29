@@ -1,6 +1,6 @@
-import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable, Animated } from "react-native";
 import { useRouter } from "expo-router";
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { useStore } from "../../lib/store";
 import { colors, spacing, fontSize, borderRadius, tierColor } from "../../lib/theme";
 import type { Campaign, CampaignTask } from "../../lib/types";
@@ -64,6 +64,35 @@ function usePriorityTasks(): readonly PriorityTask[] {
       return (TIER_ORDER[a.campaign.tier] ?? 4) - (TIER_ORDER[b.campaign.tier] ?? 4);
     });
   }, [campaigns, userCampaignIds, wallets, getTaskStatus]);
+}
+
+function AnimatedProgressBar({ pct, color }: { pct: number; color: string }) {
+  const widthAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(widthAnim, {
+      toValue: pct,
+      duration: 600,
+      delay: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [widthAnim, pct]);
+
+  const widthInterpolated = widthAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["2%", "100%"],
+  });
+
+  return (
+    <View style={styles.progressBarBg}>
+      <Animated.View
+        style={[
+          styles.progressBarFill,
+          { width: widthInterpolated, backgroundColor: color },
+        ]}
+      />
+    </View>
+  );
 }
 
 function useSortedTrackedCampaigns(): readonly Campaign[] {
@@ -219,14 +248,10 @@ export default function DashboardScreen() {
 
             {/* Progress bar */}
             <View style={styles.progressBarContainer}>
-              <View style={styles.progressBarBg}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { width: `${Math.max(pct * 100, 2)}%`, backgroundColor: pct === 1 ? colors.success : tColor },
-                  ]}
-                />
-              </View>
+              <AnimatedProgressBar
+                pct={pct}
+                color={pct === 1 ? colors.success : tColor}
+              />
               <Text style={styles.progressPctText}>
                 {progress.completed}/{progress.total}
               </Text>

@@ -2,6 +2,15 @@ import { create } from "zustand";
 import type { Campaign, Wallet, WalletTaskStatus, DashboardStats } from "./types";
 import { fetchActiveCampaigns, apiCampaignToInternal } from "./api";
 import { scheduleDeadlineReminders, cancelCampaignReminders } from "./notifications";
+import {
+  syncFromSupabase,
+  saveWallet,
+  removeWalletFromDb,
+  saveTrackedCampaign,
+  removeTrackedCampaign,
+  saveTaskCompletion,
+  saveCustomTask,
+} from "./supabase-sync";
 
 // Fallback sample data (used when API is unavailable)
 const FALLBACK_CAMPAIGNS: Campaign[] = [
@@ -40,8 +49,11 @@ interface AppState {
   readonly taskStatuses: readonly WalletTaskStatus[];
   readonly isLoading: boolean;
   readonly lastSyncAt: string | null;
+  readonly userId: string | null;
 
   // Actions
+  setUserId: (id: string) => void;
+  loadFromSupabase: () => Promise<void>;
   syncCampaigns: () => Promise<void>;
   addUserCampaign: (campaignId: string) => void;
   removeUserCampaign: (campaignId: string) => void;
@@ -65,6 +77,19 @@ export const useStore = create<AppState>((set, get) => ({
   taskStatuses: [],
   isLoading: false,
   lastSyncAt: null,
+  userId: null,
+
+  setUserId: (id) => set({ userId: id }),
+
+  loadFromSupabase: async () => {
+    const { userId } = get();
+    if (!userId) return;
+    try {
+      await syncFromSupabase(userId);
+    } catch (error) {
+      console.warn("[AirHunt] Failed to load from Supabase:", error);
+    }
+  },
 
   syncCampaigns: async () => {
     set({ isLoading: true });
@@ -96,6 +121,12 @@ export const useStore = create<AppState>((set, get) => ({
     set((state) => ({
       userCampaignIds: [...state.userCampaignIds, campaignId],
     }));
+    const { userId } = get();
+    if (userId) {
+      saveTrackedCampaign(userId, campaignId).catch((err) =>
+        console.warn("[AirHunt] Failed to save tracked campaign:", err),
+      );
+    }
   },
 
   removeUserCampaign: (campaignId) => {
@@ -103,29 +134,54 @@ export const useStore = create<AppState>((set, get) => ({
     set((state) => ({
       userCampaignIds: state.userCampaignIds.filter((id) => id !== campaignId),
     }));
+    const { userId } = get();
+    if (userId) {
+      removeTrackedCampaign(userId, campaignId).catch((err) =>
+        console.warn("[AirHunt] Failed to remove tracked campaign:", err),
+      );
+    }
   },
 
-  addWallet: (wallet) =>
+  addWallet: (wallet) => {
     set((state) => ({
       wallets: [...state.wallets, wallet],
-    })),
+    }));
+    const { userId } = get();
+    if (userId) {
+      saveWallet(userId, wallet).catch((err) =>
+        console.warn("[AirHunt] Failed to save wallet:", err),
+      );
+    }
+  },
 
-  removeWallet: (walletId) =>
+  removeWallet: (walletId) => {
     set((state) => ({
       wallets: state.wallets.filter((w) => w.id !== walletId),
-    })),
-
-  toggleTask: (walletId, taskId) =>
-    set((state) => {
-      const existing = state.taskStatuses.find(
-        (s) => s.walletId === walletId && s.taskId === taskId
+    }));
+    const { userId } = get();
+    if (userId) {
+      removeWalletFromDb(userId, walletId).catch((err) =>
+        console.warn("[AirHunt] Failed to remove wallet:", err),
       );
-      if (existing) {
+    }
+  },
+
+  toggleTask: (walletId, taskId) => {
+    const existing = get().taskStatuses.find(
+      (s) => s.walletId === walletId && s.taskId === taskId,
+    );
+    const newCompleted = existing ? !existing.completed : true;
+
+    set((state) => {
+      const found = state.taskStatuses.find(
+        (s) => s.walletId === walletId && s.taskId === taskId,
+      );
+      if (found) {
         return {
           taskStatuses: state.taskStatuses.map((s) =>
             s.walletId === walletId && s.taskId === taskId
               ? { ...s, completed: !s.completed, completedAt: !s.completed ? new Date().toISOString() : null }
-              : s
+              : s,
           ),
         };
       }
@@ -135,9 +191,17 @@ export const useStore = create<AppState>((set, get) => ({
           { walletId, taskId, completed: true, completedAt: new Date().toISOString(), notes: "" },
         ],
       };
-    }),
+    });
 
-  addCustomTask: (campaignId, title, description) =>
+    const { userId } = get();
+    if (userId) {
+      saveTaskCompletion(userId, walletId, taskId, newCompleted).catch((err) =>
+        console.warn("[AirHunt] Failed to save task completion:", err),
+      );
+    }
+  },
+
+  addCustomTask: (campaignId, title, description) => {
     set((state) => ({
       campaigns: state.campaigns.map((c) =>
         c.id === campaignId
@@ -155,9 +219,16 @@ export const useStore = create<AppState>((set, get) => ({
                 },
               ],
             }
-          : c
+          : c,
       ),
-    })),
+    }));
+    const { userId } = get();
+    if (userId) {
+      saveCustomTask(userId, campaignId, title, description).catch((err) =>
+        console.warn("[AirHunt] Failed to save custom task:", err),
+      );
+    }
+  },
 
   getTaskStatus: (walletId, taskId) => {
     const status = get().taskStatuses.find(
