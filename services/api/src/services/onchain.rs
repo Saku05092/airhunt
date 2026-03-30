@@ -9,6 +9,22 @@ pub struct OnchainClient {
     rate_limiter: RateLimiter,
 }
 
+fn is_valid_evm_address(addr: &str) -> bool {
+    addr.len() == 42
+        && addr.starts_with("0x")
+        && addr[2..].chars().all(|c| c.is_ascii_hexdigit())
+}
+
+fn encode_param(s: &str) -> String {
+    s.chars().map(|c| {
+        if c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.' || c == '~' {
+            c.to_string()
+        } else {
+            format!("%{:02X}", c as u32)
+        }
+    }).collect()
+}
+
 impl OnchainClient {
     pub fn new() -> Self {
         Self {
@@ -30,11 +46,15 @@ impl OnchainClient {
         address: &str,
         chain: &str,
     ) -> Result<Vec<Transaction>, anyhow::Error> {
+        if !is_valid_evm_address(address) {
+            return Ok(vec![]);
+        }
         self.rate_limiter.wait(chain).await;
+        let encoded_address = encode_param(address);
         let url = format!(
             "{}?module=account&action=txlist&address={}&startblock=0&endblock=99999999&sort=desc&page=1&offset=100&apikey={}",
             self.api_url(chain),
-            address,
+            encoded_address,
             self.api_key(chain)
         );
         let resp: serde_json::Value = self.client.get(&url).send().await?.json().await?;
@@ -47,11 +67,15 @@ impl OnchainClient {
         address: &str,
         chain: &str,
     ) -> Result<Vec<Transaction>, anyhow::Error> {
+        if !is_valid_evm_address(address) {
+            return Ok(vec![]);
+        }
         self.rate_limiter.wait(chain).await;
+        let encoded_address = encode_param(address);
         let url = format!(
             "{}?module=account&action=tokentx&address={}&startblock=0&endblock=99999999&sort=desc&page=1&offset=100&apikey={}",
             self.api_url(chain),
-            address,
+            encoded_address,
             self.api_key(chain)
         );
         let resp: serde_json::Value = self.client.get(&url).send().await?.json().await?;
@@ -64,11 +88,15 @@ impl OnchainClient {
         address: &str,
         chain: &str,
     ) -> Result<Vec<Transaction>, anyhow::Error> {
+        if !is_valid_evm_address(address) {
+            return Ok(vec![]);
+        }
         self.rate_limiter.wait(chain).await;
+        let encoded_address = encode_param(address);
         let url = format!(
             "{}?module=account&action=tokennfttx&address={}&startblock=0&endblock=99999999&sort=desc&page=1&offset=100&apikey={}",
             self.api_url(chain),
-            address,
+            encoded_address,
             self.api_key(chain)
         );
         let resp: serde_json::Value = self.client.get(&url).send().await?.json().await?;
@@ -81,11 +109,15 @@ impl OnchainClient {
         address: &str,
         chain: &str,
     ) -> Result<Option<Transaction>, anyhow::Error> {
+        if !is_valid_evm_address(address) {
+            return Ok(None);
+        }
         self.rate_limiter.wait(chain).await;
+        let encoded_address = encode_param(address);
         let url = format!(
             "{}?module=account&action=txlist&address={}&startblock=0&endblock=99999999&sort=asc&page=1&offset=1&apikey={}",
             self.api_url(chain),
-            address,
+            encoded_address,
             self.api_key(chain)
         );
         let resp: serde_json::Value = self.client.get(&url).send().await?.json().await?;

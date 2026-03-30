@@ -242,9 +242,17 @@ function computeTotalGasETH(txs: readonly EtherscanTx[]): string {
     }
   }
 
-  // Convert wei to ETH (1 ETH = 1e18 wei)
-  const ethValue = Number(totalWei) / 1e18;
-  return ethValue.toFixed(6);
+  // Convert BigInt wei to ETH string without Number precision loss
+  return bigintWeiToEth(totalWei);
+}
+
+function bigintWeiToEth(wei: bigint): string {
+  const divisor = BigInt("1000000000000000000"); // 1e18
+  const whole = wei / divisor;
+  const remainder = wei % divisor;
+  // Pad remainder to 18 digits, take first 6 for display
+  const remainderStr = remainder.toString().padStart(18, "0").slice(0, 6);
+  return `${whole}.${remainderStr}`;
 }
 
 // ---------------------------------------------------------------------------

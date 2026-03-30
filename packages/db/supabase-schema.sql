@@ -97,6 +97,7 @@ ALTER TABLE user_campaigns ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can view own campaigns" ON user_campaigns FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own campaigns" ON user_campaigns FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own campaigns" ON user_campaigns FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own campaigns" ON user_campaigns FOR DELETE USING (auth.uid() = user_id);
 
 -- ============================================================
@@ -138,3 +139,4 @@ ALTER TABLE wallet_tasks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own wallet tasks" ON wallet_tasks FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own wallet tasks" ON wallet_tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own wallet tasks" ON wallet_tasks FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own wallet tasks" ON wallet_tasks FOR DELETE USING (auth.uid() = user_id);
