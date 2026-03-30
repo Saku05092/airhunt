@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// Request: accept snake_case from TypeScript client
+#[derive(Debug, Clone, Deserialize)]
 pub struct EstimateRequest {
     pub campaign_id: String,
     pub tier: String,
@@ -10,7 +10,8 @@ pub struct EstimateRequest {
     pub user_tx_count: u64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// Response: serialize as camelCase for TypeScript client
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AirdropEstimate {
     pub campaign_id: String,
@@ -22,7 +23,7 @@ pub struct AirdropEstimate {
     pub user_multiplier: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ComparableAirdrop {
     pub name: String,

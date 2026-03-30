@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// Request: accept snake_case from client
+#[derive(Debug, Clone, Deserialize)]
 pub struct SybilAnalyzeRequest {
     pub addresses: Vec<String>,
     pub chains: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// Response: serialize as camelCase for TypeScript client
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SybilRiskResult {
     pub overall_score: f64,
@@ -17,7 +19,7 @@ pub struct SybilRiskResult {
     pub wallet_count: usize,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SybilRiskFactor {
     pub id: String,

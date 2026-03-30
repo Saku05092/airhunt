@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, Pressable, Linking, TextInput, Share, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable, Linking, TextInput, Share, ActivityIndicator, Alert } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useStore } from "../../lib/store";
 import { PlanGate } from "../../components/PlanGate";
@@ -188,8 +188,9 @@ export default function CampaignDetailScreen() {
                     user_tx_count: txCount,
                   });
                   setAirdropEstimate(campaign.id, result);
-                } catch {
-                  // Estimation failed silently
+                } catch (error) {
+                  const msg = error instanceof Error ? error.message : "Unknown error";
+                  Alert.alert("Estimation Failed", msg);
                 } finally {
                   setIsEstimating(false);
                 }

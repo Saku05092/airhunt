@@ -2,12 +2,14 @@ use serde::{Deserialize, Serialize};
 
 use super::wallet::WalletAddress;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// Request: accept snake_case from client
+#[derive(Debug, Clone, Deserialize)]
 pub struct PortfolioRequest {
     pub addresses: Vec<WalletAddress>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// Response: serialize as camelCase for TypeScript client
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PortfolioSummary {
     pub total_gas_spent_usd: f64,
@@ -16,7 +18,7 @@ pub struct PortfolioSummary {
     pub fetched_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WalletPortfolio {
     pub address: String,
@@ -28,7 +30,7 @@ pub struct WalletPortfolio {
     pub gas_spent_usd: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenBalance {
     pub contract_address: String,
@@ -38,15 +40,15 @@ pub struct TokenBalance {
     pub decimals: u8,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+// Request: accept snake_case from client
+#[derive(Debug, Clone, Deserialize)]
 pub struct ExportRequest {
     pub addresses: Vec<WalletAddress>,
     pub date_range: Option<DateRange>,
     pub format: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DateRange {
     pub start: String,
     pub end: String,
