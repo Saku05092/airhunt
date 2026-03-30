@@ -1,29 +1,36 @@
 use crate::models::estimate::{AirdropEstimate, ComparableAirdrop, EstimateRequest};
+use std::time::{SystemTime, UNIX_EPOCH};
 
+// Tier mapping: S/A -> "S", B -> "B", C -> "C"
+// Historical data uses actual tier letters now
 const HISTORICAL_AIRDROPS: &[(&str, &str, f64, &str, &str, &str, &str)] = &[
-    ("Uniswap", "UNI", 1200.0, "tier1", "defi", "100M", "2020-09-17"),
-    ("dYdX", "DYDX", 4500.0, "tier1", "defi", "87M", "2021-09-08"),
-    ("Optimism", "OP", 900.0, "tier1", "l2", "150M", "2022-05-31"),
-    ("Arbitrum", "ARB", 1500.0, "tier1", "l2", "120M", "2023-03-23"),
-    ("Aptos", "APT", 800.0, "tier1", "l1", "350M", "2022-10-19"),
-    ("Blur", "BLUR", 2400.0, "tier1", "nft", "11M", "2023-02-14"),
-    ("ENS", "ENS", 3000.0, "tier1", "infra", "0", "2021-11-09"),
-    ("1inch", "1INCH", 600.0, "tier2", "defi", "15M", "2020-12-25"),
-    ("Hop Protocol", "HOP", 200.0, "tier2", "bridge", "3M", "2022-06-09"),
-    ("Paraswap", "PSP", 400.0, "tier2", "defi", "3M", "2021-11-15"),
-    ("Gitcoin", "GTC", 700.0, "tier2", "infra", "11M", "2021-05-25"),
-    ("Jito", "JTO", 5000.0, "tier1", "defi", "12M", "2023-12-07"),
-    ("Jupiter", "JUP", 1000.0, "tier1", "defi", "0", "2024-01-31"),
-    ("Starknet", "STRK", 700.0, "tier1", "l2", "282M", "2024-02-20"),
-    ("Eigenlayer", "EIGEN", 350.0, "tier1", "infra", "164M", "2024-05-10"),
-    ("Wormhole", "W", 500.0, "tier1", "bridge", "225M", "2024-04-03"),
-    ("Celestia", "TIA", 2000.0, "tier1", "l1", "55M", "2023-10-31"),
-    ("ZkSync", "ZK", 200.0, "tier1", "l2", "458M", "2024-06-17"),
-    ("LayerZero", "ZRO", 150.0, "tier1", "infra", "263M", "2024-06-20"),
+    ("Uniswap", "UNI", 1200.0, "S", "defi", "100M", "2020-09-17"),
+    ("dYdX", "DYDX", 4500.0, "S", "defi", "87M", "2021-09-08"),
+    ("Optimism", "OP", 900.0, "S", "l2", "150M", "2022-05-31"),
+    ("Arbitrum", "ARB", 1500.0, "S", "l2", "120M", "2023-03-23"),
+    ("Aptos", "APT", 800.0, "S", "l1", "350M", "2022-10-19"),
+    ("Blur", "BLUR", 2400.0, "S", "nft", "11M", "2023-02-14"),
+    ("ENS", "ENS", 3000.0, "S", "infra", "0", "2021-11-09"),
+    ("1inch", "1INCH", 600.0, "B", "defi", "15M", "2020-12-25"),
+    ("Hop Protocol", "HOP", 200.0, "B", "bridge", "3M", "2022-06-09"),
+    ("Paraswap", "PSP", 400.0, "B", "defi", "3M", "2021-11-15"),
+    ("Gitcoin", "GTC", 700.0, "B", "infra", "11M", "2021-05-25"),
+    ("Jito", "JTO", 5000.0, "S", "defi", "12M", "2023-12-07"),
+    ("Jupiter", "JUP", 1000.0, "S", "defi", "0", "2024-01-31"),
+    ("Starknet", "STRK", 700.0, "A", "l2", "282M", "2024-02-20"),
+    ("Eigenlayer", "EIGEN", 350.0, "A", "infra", "164M", "2024-05-10"),
+    ("Wormhole", "W", 500.0, "A", "bridge", "225M", "2024-04-03"),
+    ("Celestia", "TIA", 2000.0, "S", "l1", "55M", "2023-10-31"),
+    ("ZkSync", "ZK", 200.0, "A", "l2", "458M", "2024-06-17"),
+    ("LayerZero", "ZRO", 150.0, "A", "infra", "263M", "2024-06-20"),
+    ("Hyperliquid", "HYPE", 45000.0, "S", "dex", "0", "2024-11-29"),
+    ("Monad", "MON", 1500.0, "S", "l1", "225M", "2025-11-24"),
+    ("Backpack", "BP", 800.0, "S", "dex", "17M", "2026-03-23"),
 ];
 
 pub fn estimate_airdrop(req: &EstimateRequest) -> Result<AirdropEstimate, anyhow::Error> {
     let comparables = find_comparables(&req.tier, &req.category);
+    let now = format_timestamp();
 
     if comparables.is_empty() {
         return Ok(AirdropEstimate {
@@ -31,9 +38,10 @@ pub fn estimate_airdrop(req: &EstimateRequest) -> Result<AirdropEstimate, anyhow
             low: 0.0,
             median: 0.0,
             high: 0.0,
-            confidence: "none".to_string(),
+            confidence: "low".to_string(),
             comparables: vec![],
             user_multiplier: 1.0,
+            estimated_at: now,
         });
     }
 
@@ -43,7 +51,7 @@ pub fn estimate_airdrop(req: &EstimateRequest) -> Result<AirdropEstimate, anyhow
     let len = values.len();
     let p25 = values[len / 4];
     let median = values[len / 2];
-    let p75 = values[(len * 3) / 4];
+    let p75 = values[std::cmp::min((len * 3) / 4, len - 1)];
 
     let funding_multiplier = compute_funding_multiplier(&req.funding_raised);
     let activity_multiplier = compute_activity_multiplier(req.user_tx_count);
@@ -63,17 +71,18 @@ pub fn estimate_airdrop(req: &EstimateRequest) -> Result<AirdropEstimate, anyhow
         confidence: confidence.to_string(),
         comparables,
         user_multiplier,
+        estimated_at: now,
     })
 }
 
 fn find_comparables(tier: &str, category: &str) -> Vec<ComparableAirdrop> {
-    let tier_lower = tier.to_lowercase();
+    let tier_upper = tier.to_uppercase();
     let category_lower = category.to_lowercase();
 
     let mut results: Vec<ComparableAirdrop> = HISTORICAL_AIRDROPS
         .iter()
         .filter(|(_, _, _, t, c, _, _)| {
-            *t == tier_lower || *c == category_lower
+            *t == tier_upper || *c == category_lower
         })
         .map(|(name, ticker, median, t, c, funding, date)| ComparableAirdrop {
             name: name.to_string(),
@@ -121,4 +130,12 @@ fn compute_activity_multiplier(tx_count: u64) -> f64 {
         51..=100 => 1.3,
         _ => 1.5,
     }
+}
+
+fn format_timestamp() -> String {
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    format!("{}Z", secs)
 }

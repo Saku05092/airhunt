@@ -21,6 +21,7 @@ pub struct AirdropEstimate {
     pub confidence: String,
     pub comparables: Vec<ComparableAirdrop>,
     pub user_multiplier: f64,
+    pub estimated_at: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
