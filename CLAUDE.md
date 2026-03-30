@@ -86,25 +86,37 @@ AirHunt is a mobile-first airdrop activity management app for DeFi farmers. It s
 - [ ] Google Play submission (Android)
 - [ ] Landing page (airhunt.app)
 
-### Phase 2: On-Chain Intelligence [NOT STARTED]
-- [ ] On-chain activity auto-detection (Etherscan/Alchemy APIs)
-- [ ] Protocol interaction history
-- [ ] Activity timestamps and frequency
-- [ ] Gas cost tracking
-- [ ] Bridge count/amount tracking
-- [ ] Swap count/amount tracking
-- [ ] LP provision status
-- [ ] NFT mint history
-- [ ] Wallet-to-wallet progress comparison dashboard
+### Phase 2: On-Chain Intelligence [COMPLETED]
+- [x] On-chain activity auto-detection (Etherscan APIs, 5 EVM chains)
+- [x] Protocol interaction history (bridges, DEX, lending detection)
+- [x] Activity timestamps and frequency
+- [x] Gas cost tracking (BigInt precision, USD estimates)
+- [x] Bridge count/amount tracking
+- [x] Swap count/amount tracking
+- [x] NFT mint history
+- [x] Wallet-to-wallet progress comparison dashboard
 
-### Phase 3: Scaling [NOT STARTED]
-- [ ] Subscription payment (Stripe / RevenueCat)
-- [ ] 50+ wallet support
-- [ ] Points/XP balance tracking
-- [ ] Referral performance analytics
+### Phase 3: Unlimited Plan Features - Rust Backend [COMPLETED]
+- [x] Rust API server (axum, port 3002)
+- [x] Sybil Risk Score (6-factor analysis, weighted scoring)
+- [x] Airdrop Value Estimator (19 historical comparables, percentile)
+- [x] Portfolio Dashboard (multi-chain token aggregation)
+- [x] Export / Tax Report (CSV generation)
+- [x] Plan gate infrastructure (PlanGate component, hasAccess utility)
+- [x] App integration (4 new screens: sybil, portfolio, export, plan gate)
+- [x] Claudex Pricing page updated
+
+### Phase 4: Scaling [NOT STARTED]
+- [ ] Stripe integration (Web subscription checkout)
+- [ ] Supabase plan sync (Stripe webhook -> profiles.plan)
+- [ ] 50+ wallet support enforcement
+- [ ] Railway deployment (Rust API)
+- [ ] Domain + landing page (airhunt.app)
+- [ ] App Store submission (iOS)
+- [ ] Google Play submission (Android)
 - [ ] Web app (Next.js)
-- [ ] Advanced notifications (Telegram/Discord integration)
 - [ ] Google/Apple OAuth login
+- [ ] Advanced notifications (Telegram/Discord)
 
 ---
 
