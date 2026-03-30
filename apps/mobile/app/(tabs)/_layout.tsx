@@ -1,12 +1,19 @@
 import { Tabs } from "expo-router";
-import { View, Text, StyleSheet } from "react-native";
-import { colors, fontSize } from "../../lib/theme";
+import { View, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { colors } from "../../lib/theme";
 
-function TabIcon({ icon, label, focused }: { icon: string; label: string; focused: boolean }) {
+type IconName = React.ComponentProps<typeof Ionicons>["name"];
+
+function TabIcon({ name, focused }: { name: IconName; focused: boolean }) {
   return (
-    <View style={styles.tabItem}>
-      <Text style={[styles.tabIcon, focused && styles.tabIconActive]}>{icon}</Text>
-      <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>{label}</Text>
+    <View style={styles.iconWrap}>
+      <Ionicons
+        name={name}
+        size={24}
+        color={focused ? colors.primary : colors.textMuted}
+      />
+      {focused && <View style={styles.activeDot} />}
     </View>
   );
 }
@@ -16,45 +23,58 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
-          borderTopWidth: 0.5,
-          height: 84,
-          paddingBottom: 20,
-          paddingTop: 8,
+          backgroundColor: colors.background,
+          borderTopWidth: 0,
+          height: 72,
+          paddingBottom: 16,
+          paddingTop: 12,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarShowLabel: false,
-        headerStyle: { backgroundColor: colors.background, shadowColor: "transparent", elevation: 0 },
+        headerStyle: {
+          backgroundColor: colors.background,
+          shadowColor: "transparent",
+          elevation: 0,
+        },
         headerTintColor: colors.text,
-        headerTitleStyle: { fontWeight: "700", fontSize: fontSize.lg },
+        headerTitleStyle: { fontWeight: "700", fontSize: 17 },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           headerTitle: "Discover",
-          tabBarIcon: ({ focused }) => <TabIcon icon="*" label="Discover" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "compass" : "compass-outline"} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="dashboard"
         options={{
           headerTitle: "Dashboard",
-          tabBarIcon: ({ focused }) => <TabIcon icon="#" label="Dashboard" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "grid" : "grid-outline"} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="wallets"
         options={{
           headerTitle: "Wallets",
-          tabBarIcon: ({ focused }) => <TabIcon icon="W" label="Wallets" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "wallet" : "wallet-outline"} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           headerTitle: "Settings",
-          tabBarIcon: ({ focused }) => <TabIcon icon="=" label="Settings" focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "settings" : "settings-outline"} focused={focused} />
+          ),
         }}
       />
     </Tabs>
@@ -62,9 +82,15 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabItem: { alignItems: "center", gap: 2 },
-  tabIcon: { fontSize: 20, color: colors.textMuted },
-  tabIconActive: { color: colors.primary },
-  tabLabel: { fontSize: fontSize.xxs, color: colors.textMuted, fontWeight: "500" },
-  tabLabelActive: { color: colors.primary },
+  iconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+  },
+  activeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.primary,
+  },
 });
