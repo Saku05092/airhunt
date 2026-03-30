@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { useStore } from "../lib/store";
 import { colors, fontSize } from "../lib/theme";
 import { checkOnboarded } from "./onboarding";
 import type { Session } from "@supabase/supabase-js";
@@ -10,6 +11,7 @@ export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [hasOnboarded, setHasOnboarded] = useState(true);
+  const { setUserId, loadFromSupabase } = useStore();
 
   useEffect(() => {
     async function init() {
@@ -20,6 +22,12 @@ export default function RootLayout() {
         if (isSupabaseConfigured()) {
           const { data: { session: s } } = await supabase.auth.getSession();
           setSession(s);
+
+          // Load user data from Supabase if logged in
+          if (s?.user?.id) {
+            setUserId(s.user.id);
+            await loadFromSupabase();
+          }
         }
       } catch (error) {
         console.warn("[Layout] Init error:", error);
@@ -32,8 +40,12 @@ export default function RootLayout() {
     // Listen for auth changes (only if configured)
     if (isSupabaseConfigured()) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, s) => {
+        async (_event, s) => {
           setSession(s);
+          if (s?.user?.id) {
+            setUserId(s.user.id);
+            await loadFromSupabase();
+          }
         }
       );
       return () => subscription.unsubscribe();

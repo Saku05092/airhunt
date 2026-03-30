@@ -4,6 +4,7 @@ import { fetchActiveCampaigns, apiCampaignToInternal } from "./api";
 import { scheduleDeadlineReminders, cancelCampaignReminders } from "./notifications";
 import {
   syncFromSupabase,
+  getUserProfile,
   saveWallet,
   removeWalletFromDb,
   saveTrackedCampaign,
@@ -122,11 +123,16 @@ export const useStore = create<AppState>((set, get) => ({
         return { ...campaign, tasks: [...campaign.tasks, ...newTasks] };
       });
 
+      // Load user plan
+      const profile = await getUserProfile(userId);
+      const userPlan = (profile?.plan?.toLowerCase() ?? "free") as Plan;
+
       set({
         wallets: result.wallets,
         userCampaignIds: result.userCampaignIds,
         taskStatuses: result.taskStatuses,
         campaigns,
+        userPlan,
       });
     } catch (error) {
       console.warn("[AirHunt] Failed to load from Supabase:", error);
