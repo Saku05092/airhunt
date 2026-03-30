@@ -3,6 +3,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "expo-router";
 import { useStore } from "../../lib/store";
 import { fetchWalletSummary } from "../../lib/onchain";
+import { PlanGate } from "../../components/PlanGate";
 import { colors, spacing, fontSize, borderRadius } from "../../lib/theme";
 import type { Chain } from "../../lib/types";
 
@@ -38,6 +39,7 @@ export default function WalletsScreen() {
     scanningWallets,
     setWalletAnalytics,
     setScanningWallet,
+    sybilResult,
   } = useStore();
   const [showAdd, setShowAdd] = useState(false);
   const [address, setAddress] = useState("");
@@ -103,6 +105,59 @@ export default function WalletsScreen() {
           <Text style={styles.addBtnText}>{showAdd ? "Cancel" : "+ Add"}</Text>
         </Pressable>
       </View>
+
+      {/* Sybil Risk Card */}
+      <PlanGate feature="sybilRiskScore">
+        <Pressable
+          style={styles.sybilCard}
+          onPress={() => router.push("/sybil" as never)}
+        >
+          <View style={styles.sybilHeader}>
+            <Text style={styles.sybilTitle}>Sybil Risk</Text>
+            {sybilResult ? (
+              <View
+                style={[
+                  styles.sybilBadge,
+                  {
+                    backgroundColor:
+                      sybilResult.riskLevel === "safe" || sybilResult.riskLevel === "low"
+                        ? colors.successBg
+                        : sybilResult.riskLevel === "medium"
+                          ? colors.accentBg
+                          : colors.dangerBg,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.sybilBadgeText,
+                    {
+                      color:
+                        sybilResult.riskLevel === "safe" || sybilResult.riskLevel === "low"
+                          ? colors.success
+                          : sybilResult.riskLevel === "medium"
+                            ? colors.accent
+                            : colors.danger,
+                    },
+                  ]}
+                >
+                  {sybilResult.riskLevel.toUpperCase()}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+          {sybilResult ? (
+            <View style={styles.sybilContent}>
+              <Text style={styles.sybilScore}>Score: {sybilResult.overallScore}/100</Text>
+              <Text style={styles.sybilAction}>Analyze Risk</Text>
+            </View>
+          ) : wallets.length < 2 ? (
+            <Text style={styles.sybilHint}>Add 2+ wallets to use Sybil analysis</Text>
+          ) : (
+            <Text style={styles.sybilHint}>Tap to analyze your wallet risk</Text>
+          )}
+        </Pressable>
+      </PlanGate>
 
       {showAdd && (
         <View style={styles.form}>
@@ -373,4 +428,35 @@ const styles = StyleSheet.create({
 
   removeBtn: { marginTop: spacing.md, alignSelf: "flex-end" },
   removeBtnText: { color: colors.danger, fontSize: fontSize.xs, fontWeight: "600" },
+
+  // Sybil Risk Card
+  sybilCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    marginBottom: spacing.xl,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  sybilHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  sybilTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: "700" },
+  sybilBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: borderRadius.sm,
+  },
+  sybilBadgeText: { fontSize: fontSize.xxs, fontWeight: "700" },
+  sybilContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  sybilScore: { color: colors.textSecondary, fontSize: fontSize.sm },
+  sybilAction: { color: colors.primary, fontSize: fontSize.sm, fontWeight: "600" },
+  sybilHint: { color: colors.textMuted, fontSize: fontSize.sm },
 });

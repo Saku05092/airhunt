@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Campaign, Wallet, WalletTaskStatus, DashboardStats, WalletSummary } from "./types";
+import type { Campaign, Wallet, WalletTaskStatus, DashboardStats, WalletSummary, Plan, SybilRiskResult, AirdropEstimate, PortfolioSummary } from "./types";
 import { fetchActiveCampaigns, apiCampaignToInternal } from "./api";
 import { scheduleDeadlineReminders, cancelCampaignReminders } from "./notifications";
 import {
@@ -52,6 +52,12 @@ interface AppState {
   readonly isLoading: boolean;
   readonly lastSyncAt: string | null;
   readonly userId: string | null;
+  readonly userPlan: Plan;
+  readonly sybilResult: SybilRiskResult | null;
+  readonly isAnalyzingSybil: boolean;
+  readonly airdropEstimates: Readonly<Record<string, AirdropEstimate>>;
+  readonly portfolioSummary: PortfolioSummary | null;
+  readonly isLoadingPortfolio: boolean;
 
   // Actions
   setUserId: (id: string) => void;
@@ -65,6 +71,12 @@ interface AppState {
   addCustomTask: (campaignId: string, title: string, description: string) => void;
   setWalletAnalytics: (walletId: string, summary: WalletSummary) => void;
   setScanningWallet: (walletId: string, scanning: boolean) => void;
+  setUserPlan: (plan: Plan) => void;
+  setSybilResult: (result: SybilRiskResult | null) => void;
+  setAnalyzingSybil: (analyzing: boolean) => void;
+  setAirdropEstimate: (campaignId: string, estimate: AirdropEstimate) => void;
+  setPortfolioSummary: (summary: PortfolioSummary | null) => void;
+  setLoadingPortfolio: (loading: boolean) => void;
 
   // Computed
   getDashboardStats: () => DashboardStats;
@@ -84,6 +96,12 @@ export const useStore = create<AppState>((set, get) => ({
   isLoading: false,
   lastSyncAt: null,
   userId: null,
+  userPlan: "free",
+  sybilResult: null,
+  isAnalyzingSybil: false,
+  airdropEstimates: {},
+  portfolioSummary: null,
+  isLoadingPortfolio: false,
 
   setUserId: (id) => set({ userId: id }),
 
@@ -267,6 +285,22 @@ export const useStore = create<AppState>((set, get) => ({
         : state.scanningWallets.filter((id) => id !== walletId),
     }));
   },
+
+  setUserPlan: (plan) => set({ userPlan: plan }),
+
+  setSybilResult: (result) => set({ sybilResult: result }),
+
+  setAnalyzingSybil: (analyzing) => set({ isAnalyzingSybil: analyzing }),
+
+  setAirdropEstimate: (campaignId, estimate) => {
+    set((state) => ({
+      airdropEstimates: { ...state.airdropEstimates, [campaignId]: estimate },
+    }));
+  },
+
+  setPortfolioSummary: (summary) => set({ portfolioSummary: summary }),
+
+  setLoadingPortfolio: (loading) => set({ isLoadingPortfolio: loading }),
 
   getTaskStatus: (walletId, taskId) => {
     const status = get().taskStatuses.find(

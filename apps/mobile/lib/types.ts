@@ -87,3 +87,79 @@ export interface WalletSummary {
   readonly activeChains: number;
   readonly estimatedGasSpentUSD: string;
 }
+
+// Sybil Risk
+export interface SybilRiskFactor {
+  readonly id: string;
+  readonly name: string;
+  readonly score: number;
+  readonly weight: number;
+  readonly severity: "low" | "medium" | "high" | "critical";
+  readonly description: string;
+  readonly recommendation: string;
+}
+
+export interface SybilRiskResult {
+  readonly overallScore: number;
+  readonly riskLevel: "safe" | "low" | "medium" | "high" | "critical";
+  readonly factors: readonly SybilRiskFactor[];
+  readonly recommendations: readonly string[];
+  readonly analyzedAt: string;
+  readonly walletCount: number;
+}
+
+// Airdrop Value Estimator
+export interface ComparableAirdrop {
+  readonly name: string;
+  readonly ticker: string;
+  readonly medianValue: number;
+  readonly tier: Tier;
+  readonly category: string;
+  readonly fundingRaised: string;
+  readonly date: string;
+}
+
+export interface AirdropEstimate {
+  readonly campaignId: string;
+  readonly low: number;
+  readonly median: number;
+  readonly high: number;
+  readonly confidence: "low" | "medium" | "high";
+  readonly comparables: readonly ComparableAirdrop[];
+  readonly userMultiplier: number;
+  readonly estimatedAt: string;
+}
+
+// Portfolio
+export interface TokenBalance {
+  readonly contractAddress: string;
+  readonly symbol: string;
+  readonly name: string;
+  readonly balance: string;
+  readonly decimals: number;
+}
+
+export interface WalletPortfolio {
+  readonly address: string;
+  readonly label: string;
+  readonly chain: string;
+  readonly nativeBalance: string;
+  readonly tokens: readonly TokenBalance[];
+  readonly gasSpentEth: string;
+  readonly gasSpentUsd: number;
+}
+
+export interface PortfolioSummary {
+  readonly totalGasSpentUsd: number;
+  readonly totalWallets: number;
+  readonly walletPortfolios: readonly WalletPortfolio[];
+  readonly fetchedAt: string;
+}
+
+// Export
+export interface ExportOptions {
+  readonly includeOnchain: boolean;
+  readonly includeTasks: boolean;
+  readonly dateRange: { start: string; end: string } | null;
+  readonly walletIds: readonly string[] | null;
+}

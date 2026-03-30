@@ -71,6 +71,9 @@ export default function RootLayout() {
           name="wallet/[id]"
           options={{ title: "Wallet Details" }}
         />
+        <Stack.Screen name="sybil" options={{ title: "Sybil Risk Score" }} />
+        <Stack.Screen name="portfolio" options={{ title: "Portfolio" }} />
+        <Stack.Screen name="export" options={{ title: "Export Report" }} />
       </Stack>
     </>
   );

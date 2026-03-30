@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { View, Text, ScrollView, StyleSheet, Pressable, Linking, TextInput, Share } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable, Linking, TextInput, Share, ActivityIndicator } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useStore } from "../../lib/store";
+import { PlanGate } from "../../components/PlanGate";
+import { estimateValue } from "../../lib/api";
 import { colors, spacing, fontSize, borderRadius, tierColor, tierBgColor } from "../../lib/theme";
 
 function buildUtmLink(baseUrl: string, campaignId: string, source: string = "airhunt"): string {
@@ -26,10 +28,11 @@ function daysUntil(dateStr: string): number | null {
 
 export default function CampaignDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { campaigns, wallets, getTaskStatus, toggleTask, userCampaignIds, addUserCampaign, addCustomTask } = useStore();
+  const { campaigns, wallets, getTaskStatus, toggleTask, userCampaignIds, addUserCampaign, addCustomTask, airdropEstimates, setAirdropEstimate, walletAnalytics } = useStore();
   const [addingTaskForWallet, setAddingTaskForWallet] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
+  const [isEstimating, setIsEstimating] = useState(false);
 
   const campaign = campaigns.find((c) => c.id === id);
   if (!campaign) {
@@ -100,6 +103,107 @@ export default function CampaignDetailScreen() {
           <Text style={styles.statValue}>{campaign.fundingRaised}</Text>
         </View>
       </View>
+
+      {/* Value Estimate */}
+      <PlanGate feature="airdropEstimator">
+        <View style={styles.estimateSection}>
+          <Text style={styles.sectionTitle}>VALUE ESTIMATE</Text>
+          {airdropEstimates[campaign.id] ? (
+            <View style={styles.estimateCard}>
+              <View style={styles.estimateRange}>
+                <Text style={styles.estimateLow}>
+                  ${airdropEstimates[campaign.id].low.toLocaleString()}
+                </Text>
+                <Text style={styles.estimateMedian}>
+                  ${airdropEstimates[campaign.id].median.toLocaleString()}
+                </Text>
+                <Text style={styles.estimateHigh}>
+                  ${airdropEstimates[campaign.id].high.toLocaleString()}
+                </Text>
+              </View>
+              <View style={styles.estimateLabels}>
+                <Text style={styles.estimateRangeLabel}>Low</Text>
+                <Text style={styles.estimateRangeLabel}>Median</Text>
+                <Text style={styles.estimateRangeLabel}>High</Text>
+              </View>
+              <View
+                style={[
+                  styles.confidenceBadge,
+                  {
+                    backgroundColor:
+                      airdropEstimates[campaign.id].confidence === "high"
+                        ? colors.successBg
+                        : airdropEstimates[campaign.id].confidence === "medium"
+                          ? colors.accentBg
+                          : colors.dangerBg,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.confidenceText,
+                    {
+                      color:
+                        airdropEstimates[campaign.id].confidence === "high"
+                          ? colors.success
+                          : airdropEstimates[campaign.id].confidence === "medium"
+                            ? colors.accent
+                            : colors.danger,
+                    },
+                  ]}
+                >
+                  {airdropEstimates[campaign.id].confidence.toUpperCase()} CONFIDENCE
+                </Text>
+              </View>
+              {airdropEstimates[campaign.id].comparables.length > 0 && (
+                <View style={styles.comparablesSection}>
+                  <Text style={styles.comparablesTitle}>Comparable Airdrops</Text>
+                  {airdropEstimates[campaign.id].comparables.map((comp, idx) => (
+                    <View key={idx} style={styles.comparableRow}>
+                      <Text style={styles.comparableName}>{comp.name}</Text>
+                      <Text style={styles.comparableValue}>
+                        ${comp.medianValue.toLocaleString()}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          ) : (
+            <Pressable
+              style={[styles.estimateBtn, isEstimating && styles.estimateBtnDisabled]}
+              onPress={async () => {
+                if (isEstimating) return;
+                setIsEstimating(true);
+                try {
+                  const primaryWallet = wallets[0];
+                  const txCount = primaryWallet && walletAnalytics[primaryWallet.id]
+                    ? walletAnalytics[primaryWallet.id].totalTxAcrossChains
+                    : 0;
+                  const result = await estimateValue({
+                    campaign_id: campaign.id,
+                    tier: campaign.tier,
+                    category: campaign.category,
+                    funding_raised: campaign.fundingRaised,
+                    user_tx_count: txCount,
+                  });
+                  setAirdropEstimate(campaign.id, result);
+                } catch {
+                  // Estimation failed silently
+                } finally {
+                  setIsEstimating(false);
+                }
+              }}
+            >
+              {isEstimating ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={styles.estimateBtnText}>Estimate Value</Text>
+              )}
+            </Pressable>
+          )}
+        </View>
+      </PlanGate>
 
       {/* Backers */}
       {campaign.backers.length > 0 && campaign.backers[0] !== "" && (
@@ -475,4 +579,55 @@ const styles = StyleSheet.create({
   },
 
   disclaimer: { color: colors.textMuted, fontSize: fontSize.xxs, textAlign: "center", padding: spacing.xl },
+
+  // Value Estimate
+  estimateSection: { marginTop: spacing.xl, paddingHorizontal: spacing.lg },
+  estimateCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  estimateRange: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+  },
+  estimateLow: { color: colors.textMuted, fontSize: fontSize.md, fontWeight: "600" },
+  estimateMedian: { color: colors.success, fontSize: fontSize.xl, fontWeight: "800" },
+  estimateHigh: { color: colors.textMuted, fontSize: fontSize.md, fontWeight: "600" },
+  estimateLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  estimateRangeLabel: { color: colors.textMuted, fontSize: fontSize.xxs },
+  confidenceBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xxs,
+    borderRadius: borderRadius.sm,
+  },
+  confidenceText: { fontSize: fontSize.xxs, fontWeight: "700" },
+  comparablesSection: {
+    borderTopWidth: 0.5,
+    borderTopColor: colors.border,
+    paddingTop: spacing.md,
+    gap: spacing.sm,
+  },
+  comparablesTitle: { color: colors.textMuted, fontSize: fontSize.xxs, fontWeight: "700", letterSpacing: 1 },
+  comparableRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  comparableName: { color: colors.textSecondary, fontSize: fontSize.xs },
+  comparableValue: { color: colors.text, fontSize: fontSize.xs, fontWeight: "600" },
+  estimateBtn: {
+    backgroundColor: colors.primaryBg,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.lg,
+    alignItems: "center",
+  },
+  estimateBtnDisabled: { opacity: 0.6 },
+  estimateBtnText: { color: colors.primary, fontWeight: "700", fontSize: fontSize.md },
 });

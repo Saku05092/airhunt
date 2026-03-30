@@ -2,6 +2,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable, Animated } from "react-n
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useEffect } from "react";
 import { useStore } from "../../lib/store";
+import { PlanGate } from "../../components/PlanGate";
 import { colors, spacing, fontSize, borderRadius, tierColor } from "../../lib/theme";
 import type { Campaign, CampaignTask } from "../../lib/types";
 
@@ -114,7 +115,7 @@ function useSortedTrackedCampaigns(): readonly Campaign[] {
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const { wallets, getDashboardStats, getCampaignProgress } = useStore();
+  const { wallets, getDashboardStats, getCampaignProgress, portfolioSummary } = useStore();
   const stats = getDashboardStats();
   const priorityTasks = usePriorityTasks();
   const trackedCampaigns = useSortedTrackedCampaigns();
@@ -219,6 +220,21 @@ export default function DashboardScreen() {
           <Text style={styles.statLabel}>Urgent</Text>
         </View>
       </View>
+
+      {/* Portfolio Card */}
+      <PlanGate feature="portfolioDashboard">
+        <Pressable
+          style={styles.portfolioCard}
+          onPress={() => router.push("/portfolio" as never)}
+        >
+          <Text style={styles.portfolioTitle}>View Portfolio</Text>
+          <Text style={styles.portfolioGas}>
+            {portfolioSummary
+              ? `Total gas spent: $${portfolioSummary.totalGasSpentUsd.toFixed(2)}`
+              : "Tap to view wallet holdings"}
+          </Text>
+        </Pressable>
+      </PlanGate>
 
       {/* Campaign Progress Cards */}
       {trackedCampaigns.map((campaign) => {
@@ -535,4 +551,17 @@ const styles = StyleSheet.create({
   },
 
   footer: { color: colors.textMuted, fontSize: fontSize.xxs, textAlign: "center", marginTop: spacing.xl },
+
+  // Portfolio card
+  portfolioCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  portfolioTitle: { color: colors.primary, fontSize: fontSize.md, fontWeight: "700" },
+  portfolioGas: { color: colors.textMuted, fontSize: fontSize.xs },
 });

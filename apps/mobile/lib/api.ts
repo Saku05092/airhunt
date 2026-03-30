@@ -155,3 +155,75 @@ export function apiCampaignToInternal(api: ApiCampaign) {
     })),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Rust API Client (port 3002)
+// ---------------------------------------------------------------------------
+
+function getRustApiBase(): string {
+  if (!__DEV__) return "https://api-rust.airhunt.app"; // Production TBD
+  const envUrl = Constants.expoConfig?.extra?.airhuntRustApiUrl
+    ?? process.env.EXPO_PUBLIC_RUST_API_URL;
+  if (envUrl) return envUrl;
+  if (Platform.OS === "web") return "http://localhost:3002";
+  const debuggerHost = Constants.expoConfig?.hostUri?.split(":")[0];
+  if (debuggerHost) return `http://${debuggerHost}:3002`;
+  return "http://localhost:3002";
+}
+
+const RUST_API_BASE = getRustApiBase();
+
+async function fetchRustJson<T>(path: string, body: unknown): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const response = await fetch(`${RUST_API_BASE}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`Rust API error: ${response.status}`);
+    }
+    return response.json() as Promise<T>;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// Sybil Analysis
+export async function analyzeSybil(addresses: string[], chains: string[]): Promise<import("./types").SybilRiskResult> {
+  return fetchRustJson("/api/sybil/analyze", { addresses, chains });
+}
+
+// Value Estimator
+export async function estimateValue(params: {
+  campaign_id: string; tier: string; category: string;
+  funding_raised: string; user_tx_count: number;
+}): Promise<import("./types").AirdropEstimate> {
+  return fetchRustJson("/api/estimate", params);
+}
+
+// Portfolio
+export async function fetchPortfolio(addresses: { address: string; chain: string }[]): Promise<import("./types").PortfolioSummary> {
+  return fetchRustJson("/api/portfolio", { addresses });
+}
+
+// Export CSV
+export async function fetchExportCsv(addresses: { address: string; chain: string }[], dateRange?: { start: string; end: string }): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60_000);
+  try {
+    const response = await fetch(`${RUST_API_BASE}/api/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ addresses, date_range: dateRange || null, format: "csv" }),
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`Export error: ${response.status}`);
+    return response.text();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
