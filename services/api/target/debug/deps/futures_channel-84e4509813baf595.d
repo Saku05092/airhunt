@@ -1,0 +1,11 @@
+/Users/shin/claude-code/airhunt/services/api/target/debug/deps/futures_channel-84e4509813baf595.d: /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/lib.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/lock.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/mpsc/mod.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/mpsc/queue.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/oneshot.rs
+
+/Users/shin/claude-code/airhunt/services/api/target/debug/deps/libfutures_channel-84e4509813baf595.rlib: /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/lib.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/lock.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/mpsc/mod.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/mpsc/queue.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/oneshot.rs
+
+/Users/shin/claude-code/airhunt/services/api/target/debug/deps/libfutures_channel-84e4509813baf595.rmeta: /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/lib.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/lock.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/mpsc/mod.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/mpsc/queue.rs /Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/oneshot.rs
+
+/Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/lib.rs:
+/Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/lock.rs:
+/Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/mpsc/mod.rs:
+/Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/mpsc/queue.rs:
+/Users/shin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/futures-channel-0.3.32/src/oneshot.rs:
