@@ -8,6 +8,7 @@ pub struct PortfolioRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PortfolioSummary {
     pub total_gas_spent_usd: f64,
     pub total_wallets: usize,
@@ -16,6 +17,7 @@ pub struct PortfolioSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WalletPortfolio {
     pub address: String,
     pub label: String,
@@ -27,6 +29,7 @@ pub struct WalletPortfolio {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TokenBalance {
     pub contract_address: String,
     pub symbol: String,
@@ -36,6 +39,7 @@ pub struct TokenBalance {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExportRequest {
     pub addresses: Vec<WalletAddress>,
     pub date_range: Option<DateRange>,

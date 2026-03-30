@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EstimateRequest {
     pub campaign_id: String,
     pub tier: String,
@@ -10,6 +11,7 @@ pub struct EstimateRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AirdropEstimate {
     pub campaign_id: String,
     pub low: f64,
@@ -21,6 +23,7 @@ pub struct AirdropEstimate {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ComparableAirdrop {
     pub name: String,
     pub ticker: String,

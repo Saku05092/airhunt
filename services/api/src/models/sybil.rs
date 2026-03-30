@@ -7,6 +7,7 @@ pub struct SybilAnalyzeRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SybilRiskResult {
     pub overall_score: f64,
     pub risk_level: String,
@@ -17,6 +18,7 @@ pub struct SybilRiskResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SybilRiskFactor {
     pub id: String,
     pub name: String,
