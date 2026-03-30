@@ -1,6 +1,8 @@
-import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { useStore } from "../../lib/store";
+import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { PlanGate } from "../../components/PlanGate";
 import { colors, spacing, fontSize, borderRadius } from "../../lib/theme";
 
@@ -25,23 +27,69 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 export default function SettingsScreen() {
   const router = useRouter();
   const userPlan = useStore((s) => s.userPlan);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+      setUserEmail(session?.user?.email ?? null);
+    });
+  }, []);
 
   const planLabel = userPlan === "free" ? "Free" : userPlan === "pro" ? "Pro" : "Unlimited";
   const walletLimit = userPlan === "free" ? "1" : userPlan === "pro" ? "10" : "50+";
 
+  async function handleLogout() {
+    try {
+      await supabase.auth.signOut();
+      setIsLoggedIn(false);
+      setUserEmail(null);
+    } catch {
+      Alert.alert("Error", "Failed to sign out");
+    }
+  }
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Account */}
+      <SettingsSection title="ACCOUNT">
+        {isLoggedIn ? (
+          <>
+            <SettingsRow label="Email" value={userEmail ?? ""} />
+            <SettingsRow label="Status" value="Logged in" />
+            <Pressable style={styles.actionRow} onPress={handleLogout}>
+              <Text style={styles.logoutText}>Sign Out</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <SettingsRow label="Status" value="Not logged in" />
+            <Pressable
+              style={styles.actionRow}
+              onPress={() => router.push("/auth/login" as never)}
+            >
+              <Text style={styles.loginText}>Sign In / Create Account</Text>
+            </Pressable>
+          </>
+        )}
+      </SettingsSection>
+
+      {/* Plan */}
       <SettingsSection title="PLAN">
         <SettingsRow label="Current Plan" value={planLabel} />
         <SettingsRow label="Wallet Limit" value={walletLimit} />
         <SettingsRow label="Upgrade" value="Pro - $9.99/mo" />
       </SettingsSection>
 
+      {/* Notifications */}
       <SettingsSection title="NOTIFICATIONS">
         <SettingsRow label="Deadline Alerts" value="7d, 3d, 1d" />
         <SettingsRow label="New Campaigns" value="On" />
       </SettingsSection>
 
+      {/* Data */}
       <SettingsSection title="DATA">
         <SettingsRow label="Campaign Source" value="Claudex" />
         <SettingsRow label="Last Sync" value="Just now" />
@@ -56,6 +104,7 @@ export default function SettingsScreen() {
         </PlanGate>
       </SettingsSection>
 
+      {/* App */}
       <SettingsSection title="APP">
         <SettingsRow label="Version" value="0.1.0" />
         <SettingsRow label="Build" value="MVP" />
@@ -99,6 +148,15 @@ const styles = StyleSheet.create({
   },
   rowLabel: { color: colors.text, fontSize: fontSize.md },
   rowValue: { color: colors.textMuted, fontSize: fontSize.sm },
+
+  actionRow: {
+    padding: spacing.lg,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.border,
+    alignItems: "center",
+  },
+  loginText: { color: colors.primary, fontSize: fontSize.md, fontWeight: "700" },
+  logoutText: { color: colors.danger, fontSize: fontSize.md, fontWeight: "600" },
 
   exportRow: {
     flexDirection: "row",
