@@ -1,8 +1,63 @@
--- AirHunt Supabase Schema
--- Run this in Supabase SQL Editor (Dashboard -> SQL Editor -> New Query)
+-- AirHunt Supabase Schema v2
+--
+-- HOW TO USE:
+-- 1. Supabase Dashboard -> SQL Editor -> New Query
+-- 2. If re-running, first execute the RESET block below
+-- 3. Then execute the full schema
+--
+-- RESET (run first if tables already exist):
+--   DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+--   DROP FUNCTION IF EXISTS handle_new_user();
+--   DROP TABLE IF EXISTS wallet_tasks CASCADE;
+--   DROP TABLE IF EXISTS custom_tasks CASCADE;
+--   DROP TABLE IF EXISTS user_campaigns CASCADE;
+--   DROP TABLE IF EXISTS wallets CASCADE;
+--   DROP TABLE IF EXISTS profiles CASCADE;
 
--- Enable RLS
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
+-- ============================================================
+-- USER PROFILES (plan management) -- MUST BE FIRST
+-- ============================================================
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  plan TEXT DEFAULT 'FREE' CHECK (plan IN ('FREE', 'PRO', 'UNLIMITED')),
+  wallet_limit INT DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Allow the trigger function to insert (runs as service_role)
+CREATE POLICY "Service role can insert profiles"
+  ON profiles FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Users can view own profile"
+  ON profiles FOR SELECT
+  USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile"
+  ON profiles FOR UPDATE
+  USING (auth.uid() = id);
+
+-- Auto-create profile on user signup
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  INSERT INTO public.profiles (id, plan, wallet_limit)
+  VALUES (NEW.id, 'FREE', 1);
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- ============================================================
 -- WALLETS
@@ -83,34 +138,3 @@ ALTER TABLE wallet_tasks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own wallet tasks" ON wallet_tasks FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own wallet tasks" ON wallet_tasks FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own wallet tasks" ON wallet_tasks FOR UPDATE USING (auth.uid() = user_id);
-
--- ============================================================
--- USER PROFILES (plan management)
--- ============================================================
-CREATE TABLE IF NOT EXISTS profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  plan TEXT DEFAULT 'FREE' CHECK (plan IN ('FREE', 'PRO', 'UNLIMITED')),
-  wallet_limit INT DEFAULT 1,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
-
--- Auto-create profile on user signup
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-BEGIN
-  INSERT INTO profiles (id, plan, wallet_limit)
-  VALUES (NEW.id, 'FREE', 1);
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
