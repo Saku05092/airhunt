@@ -14,3 +14,4 @@ ios/
 android/
 packages/db/generated/
 packages/db/.env
+services/api/target/
