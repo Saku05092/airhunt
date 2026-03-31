@@ -66,7 +66,7 @@ interface AppState {
   syncCampaigns: () => Promise<void>;
   addUserCampaign: (campaignId: string) => void;
   removeUserCampaign: (campaignId: string) => void;
-  addWallet: (wallet: Wallet) => void;
+  addWallet: (wallet: Wallet) => boolean;
   removeWallet: (walletId: string) => void;
   toggleTask: (walletId: string, taskId: string) => void;
   addCustomTask: (campaignId: string, title: string, description: string) => void;
@@ -191,6 +191,12 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   addWallet: (wallet) => {
+    const { wallets, userPlan } = get();
+    const walletLimits: Record<Plan, number> = { free: 1, pro: 10, unlimited: 50 };
+    const limit = walletLimits[userPlan];
+    if (wallets.length >= limit) {
+      return false;
+    }
     set((state) => ({
       wallets: [...state.wallets, wallet],
     }));
@@ -200,6 +206,7 @@ export const useStore = create<AppState>((set, get) => ({
         console.warn("[AirHunt] Failed to save wallet:", err),
       );
     }
+    return true;
   },
 
   removeWallet: (walletId) => {

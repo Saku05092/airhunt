@@ -5,7 +5,9 @@ import { useStore } from "../../lib/store";
 import { fetchWalletSummary } from "../../lib/onchain";
 import { PlanGate } from "../../components/PlanGate";
 import { colors, spacing, fontSize, borderRadius } from "../../lib/theme";
-import type { Chain } from "../../lib/types";
+import type { Chain, Plan } from "../../lib/types";
+
+const WALLET_LIMITS: Record<Plan, number> = { free: 1, pro: 10, unlimited: 50 };
 
 const CHAINS: { id: Chain; label: string; short: string }[] = [
   { id: "ethereum", label: "Ethereum", short: "ETH" },
@@ -40,7 +42,10 @@ export default function WalletsScreen() {
     setWalletAnalytics,
     setScanningWallet,
     sybilResult,
+    userPlan,
   } = useStore();
+  const walletLimit = WALLET_LIMITS[userPlan];
+  const isAtLimit = wallets.length >= walletLimit;
   const [showAdd, setShowAdd] = useState(false);
   const [address, setAddress] = useState("");
   const [label, setLabel] = useState("");
@@ -63,13 +68,20 @@ export default function WalletsScreen() {
         return;
       }
     }
-    addWallet({
+    const added = addWallet({
       id: `w-${Date.now()}`,
       address: address.trim(),
       chain,
       label: label.trim() || `Wallet ${wallets.length + 1}`,
       isPrimary: wallets.length === 0,
     });
+    if (!added) {
+      Alert.alert(
+        "Wallet limit reached",
+        `Your ${userPlan} plan allows up to ${walletLimit} wallet${walletLimit === 1 ? "" : "s"}. Upgrade your plan to add more.`,
+      );
+      return;
+    }
     setAddress("");
     setLabel("");
     setShowAdd(false);
@@ -100,9 +112,28 @@ export default function WalletsScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Wallets</Text>
-        <Pressable style={styles.addBtn} onPress={() => setShowAdd(!showAdd)}>
-          <Text style={styles.addBtnText}>{showAdd ? "Cancel" : "+ Add"}</Text>
+        <View>
+          <Text style={styles.title}>My Wallets</Text>
+          <Text style={styles.walletCount}>
+            {wallets.length}/{walletLimit} wallets ({userPlan})
+          </Text>
+        </View>
+        <Pressable
+          style={[styles.addBtn, isAtLimit && styles.addBtnDisabled]}
+          onPress={() => {
+            if (isAtLimit) {
+              Alert.alert(
+                "Wallet limit reached",
+                `Your ${userPlan} plan allows up to ${walletLimit} wallet${walletLimit === 1 ? "" : "s"}. Upgrade to add more.`,
+              );
+              return;
+            }
+            setShowAdd(!showAdd);
+          }}
+        >
+          <Text style={[styles.addBtnText, isAtLimit && styles.addBtnTextDisabled]}>
+            {showAdd ? "Cancel" : "+ Add"}
+          </Text>
         </Pressable>
       </View>
 
@@ -308,8 +339,11 @@ const styles = StyleSheet.create({
 
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: spacing.xl },
   title: { color: colors.text, fontSize: fontSize.xxl, fontWeight: "800" },
+  walletCount: { color: colors.textMuted, fontSize: fontSize.xs, marginTop: spacing.xxs },
   addBtn: { backgroundColor: colors.primaryBg, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.full },
+  addBtnDisabled: { opacity: 0.4 },
   addBtnText: { color: colors.primary, fontWeight: "700", fontSize: fontSize.sm },
+  addBtnTextDisabled: { color: colors.textMuted },
 
   form: {
     backgroundColor: colors.surface,
