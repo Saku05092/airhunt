@@ -106,17 +106,37 @@ AirHunt is a mobile-first airdrop activity management app for DeFi farmers. It s
 - [x] App integration (4 new screens: sybil, portfolio, export, plan gate)
 - [x] Claudex Pricing page updated
 
-### Phase 4: Scaling [NOT STARTED]
-- [ ] Stripe integration (Web subscription checkout)
-- [ ] Supabase plan sync (Stripe webhook -> profiles.plan)
-- [ ] 50+ wallet support enforcement
-- [ ] Railway deployment (Rust API)
-- [ ] Domain + landing page (airhunt.app)
+### Phase 4: Scaling [IN PROGRESS]
+
+#### Code Complete (requires external setup to activate):
+- [x] Stripe integration (checkout session + webhook handler)
+- [x] Supabase plan sync (webhook -> profiles.plan logic)
+- [x] 50+ wallet limit enforcement (plan-based, UI count display)
+- [x] Railway Dockerfile + config (multi-stage Rust build)
+- [x] Next.js web app (landing page, pricing, signup)
+- [x] Google/Apple OAuth (expo-web-browser + AuthSession flow)
+
+#### External Setup Required:
+- [ ] Stripe account creation + product/price IDs -> .env
+- [ ] Railway deploy (GitHub -> services/api directory)
+- [ ] Domain purchase (airhunt.app) + DNS configuration
+- [ ] Vercel deploy (apps/web)
+- [ ] Supabase OAuth provider config (Google/Apple Client IDs)
 - [ ] App Store submission (iOS)
 - [ ] Google Play submission (Android)
-- [ ] Web app (Next.js)
-- [ ] Google/Apple OAuth login
+
+#### Remaining:
 - [ ] Advanced notifications (Telegram/Discord)
+
+### Backlog: Bug Fixes / Improvements (from audit)
+- [ ] Store race condition fix (toggleTask concurrent access)
+- [ ] Rust chain parameter enum validation
+- [ ] console.warn -> structured logger
+- [ ] `any` type replacement (index.tsx CampaignCard)
+- [ ] Hardcoded ETH/USD prices -> API price feed
+- [ ] Sybil chrono_now() -> ISO 8601 format
+- [ ] Wallet ID Date.now() -> crypto.randomUUID()
+- [ ] File splitting (dashboard.tsx 567L, [id].tsx 633L)
 
 ---
 
