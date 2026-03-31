@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, StyleSheet, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable, Alert, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { useStore } from "../../lib/store";
@@ -87,6 +87,18 @@ export default function SettingsScreen() {
       <SettingsSection title="NOTIFICATIONS">
         <SettingsRow label="Deadline Alerts" value="7d, 3d, 1d" />
         <SettingsRow label="New Campaigns" value="On" />
+      </SettingsSection>
+
+      {/* Community */}
+      <SettingsSection title="COMMUNITY">
+        <Pressable style={styles.actionRow} onPress={() => Linking.openURL("https://discord.gg/airhunt").catch(() => {})}>
+          <Text style={styles.rowLabel}>Discord</Text>
+          <Text style={styles.rowValue}>Join Community</Text>
+        </Pressable>
+        <Pressable style={styles.actionRow} onPress={() => Linking.openURL("https://x.com/mochi_d3fi").catch(() => {})}>
+          <Text style={styles.rowLabel}>Twitter/X</Text>
+          <Text style={styles.rowValue}>@mochi_d3fi</Text>
+        </Pressable>
       </SettingsSection>
 
       {/* Data */}

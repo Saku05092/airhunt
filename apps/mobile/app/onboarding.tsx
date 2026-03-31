@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Pressable,
   Dimensions,
+  Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
@@ -136,9 +137,17 @@ export default function OnboardingScreen() {
         </View>
 
         {isLastSlide && (
-          <Pressable style={styles.getStartedBtn} onPress={handleComplete}>
-            <Text style={styles.getStartedText}>Get Started</Text>
-          </Pressable>
+          <>
+            <Pressable style={styles.getStartedBtn} onPress={handleComplete}>
+              <Text style={styles.getStartedText}>Get Started</Text>
+            </Pressable>
+            <Pressable
+              style={styles.discordLink}
+              onPress={() => Linking.openURL("https://discord.gg/airhunt").catch(() => {})}
+            >
+              <Text style={styles.discordLinkText}>Join our Discord community</Text>
+            </Pressable>
+          </>
         )}
       </View>
     </View>
@@ -239,5 +248,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.lg,
     fontWeight: "800",
+  },
+  discordLink: {
+    paddingVertical: spacing.sm,
+  },
+  discordLinkText: {
+    color: colors.textMuted,
+    fontSize: fontSize.sm,
+    fontWeight: "600",
   },
 });

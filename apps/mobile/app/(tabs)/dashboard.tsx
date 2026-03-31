@@ -1,5 +1,5 @@
 // TODO: Split into smaller components (currently 567 lines)
-import { View, Text, ScrollView, StyleSheet, Pressable, Animated } from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable, Animated, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useEffect } from "react";
 import { useStore } from "../../lib/store";
@@ -347,6 +347,14 @@ export default function DashboardScreen() {
         </View>
       )}
 
+      <Pressable
+        style={styles.discordBanner}
+        onPress={() => Linking.openURL("https://discord.gg/airhunt").catch(() => {})}
+      >
+        <Text style={styles.discordTitle}>Join our Discord</Text>
+        <Text style={styles.discordDesc}>Get airdrop alerts and connect with other hunters</Text>
+      </Pressable>
+
       <Text style={styles.footer}>Tap a campaign to manage tasks per wallet</Text>
     </ScrollView>
   );
@@ -565,4 +573,24 @@ const styles = StyleSheet.create({
   },
   portfolioTitle: { color: colors.primary, fontSize: fontSize.md, fontWeight: "700" },
   portfolioGas: { color: colors.textMuted, fontSize: fontSize.xs },
+
+  // Discord banner
+  discordBanner: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+    borderLeftWidth: 3,
+    borderLeftColor: "#5865F2",
+  },
+  discordTitle: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontWeight: "700",
+    marginBottom: spacing.xxs,
+  },
+  discordDesc: {
+    color: colors.textMuted,
+    fontSize: fontSize.xs,
+  },
 });

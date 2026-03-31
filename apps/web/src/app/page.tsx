@@ -184,6 +184,24 @@ export default function HomePage() {
             portfolio -- all in one app.
           </p>
 
+          {/* CTA Buttons */}
+          <div className="mt-8 flex items-center justify-center gap-4">
+            <Link
+              href="/signup"
+              className="rounded-lg bg-primary px-6 py-3 text-sm font-medium text-white hover:bg-primary-light transition-colors"
+            >
+              Get Started
+            </Link>
+            <a
+              href="https://discord.gg/airhunt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-border px-6 py-3 text-sm font-medium text-foreground hover:bg-surface-light transition-colors"
+            >
+              Join Discord
+            </a>
+          </div>
+
           {/* App Store Badges */}
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <a
@@ -388,6 +406,13 @@ export default function HomePage() {
                 <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Careers</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold mb-3">Community</h4>
+              <ul className="space-y-2 text-sm text-muted">
+                <li><a href="https://discord.gg/airhunt" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Discord</a></li>
+                <li><a href="https://x.com/mochi_d3fi" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">Twitter/X</a></li>
               </ul>
             </div>
             <div>
