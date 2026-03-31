@@ -5,6 +5,7 @@ import { useStore } from "../../lib/store";
 import { fetchWalletSummary } from "../../lib/onchain";
 import { PlanGate } from "../../components/PlanGate";
 import { colors, spacing, fontSize, borderRadius } from "../../lib/theme";
+import { randomUUID } from "expo-crypto";
 import type { Chain, Plan } from "../../lib/types";
 
 const WALLET_LIMITS: Record<Plan, number> = { free: 1, pro: 10, unlimited: 50 };
@@ -69,7 +70,7 @@ export default function WalletsScreen() {
       }
     }
     const added = addWallet({
-      id: `w-${Date.now()}`,
+      id: randomUUID(),
       address: address.trim(),
       chain,
       label: label.trim() || `Wallet ${wallets.length + 1}`,

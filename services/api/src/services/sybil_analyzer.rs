@@ -54,7 +54,7 @@ impl<'a> SybilAnalyzer<'a> {
             risk_level: risk_level.to_string(),
             factors,
             recommendations,
-            analyzed_at: chrono_now(),
+            analyzed_at: iso_now(),
             wallet_count: addresses.len(),
         })
     }
@@ -435,10 +435,6 @@ fn severity_from_score(score: f64) -> String {
     }
 }
 
-fn chrono_now() -> String {
-    // Simple ISO-ish timestamp without chrono dependency
-    let since_epoch = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-    format!("{}Z", since_epoch.as_secs())
+fn iso_now() -> String {
+    chrono::Utc::now().to_rfc3339()
 }

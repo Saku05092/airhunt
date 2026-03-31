@@ -520,15 +520,20 @@ export async function fetchFullChainActivity(
 // Public API: Wallet Summary
 // ---------------------------------------------------------------------------
 
-// Rough USD-per-native-token estimates for gas cost calculation.
-// These are placeholders; a real implementation would fetch live prices.
-const NATIVE_TOKEN_USD: Readonly<Record<string, number>> = {
+// Approximate prices - updated periodically
+// TODO: Replace with live price feed (CoinGecko API)
+const CHAIN_NATIVE_PRICES_USD: Record<string, number> = {
   ethereum: 3500,
   arbitrum: 3500,
   optimism: 3500,
   base: 3500,
   polygon: 0.5,
+  solana: 150,
 };
+
+export function setChainPrice(chain: string, price: number): void {
+  CHAIN_NATIVE_PRICES_USD[chain] = price;
+}
 
 export async function fetchWalletSummary(
   address: string,
@@ -563,7 +568,7 @@ export async function fetchWalletSummary(
   let estimatedGasUSD = 0;
   for (const activity of chainActivities) {
     const gasETH = parseFloat(activity.totalGasUsedETH);
-    const priceUSD = NATIVE_TOKEN_USD[activity.chain] ?? 0;
+    const priceUSD = CHAIN_NATIVE_PRICES_USD[activity.chain] ?? 0;
     estimatedGasUSD += gasETH * priceUSD;
   }
 

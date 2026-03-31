@@ -1,3 +1,4 @@
+// TODO: Split into smaller components (currently 567 lines)
 import { View, Text, ScrollView, StyleSheet, Pressable, Animated } from "react-native";
 import { useRouter } from "expo-router";
 import { useMemo, useRef, useEffect } from "react";

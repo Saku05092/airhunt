@@ -14,12 +14,12 @@ pub async fn fetch_portfolio(
 
     for wallet in addresses {
         let txs = onchain
-            .fetch_transactions(&wallet.address, &wallet.chain)
+            .fetch_transactions(&wallet.address, wallet.chain.as_str())
             .await
             .unwrap_or_default();
 
         let token_txs = onchain
-            .fetch_token_transfers(&wallet.address, &wallet.chain)
+            .fetch_token_transfers(&wallet.address, wallet.chain.as_str())
             .await
             .unwrap_or_default();
 
@@ -29,7 +29,7 @@ pub async fn fetch_portfolio(
             .map(|tx| eth_math::compute_gas_eth(&tx.gas_used, &tx.gas_price))
             .sum();
 
-        let gas_usd = eth_math::estimate_usd(gas_eth, &wallet.chain);
+        let gas_usd = eth_math::estimate_usd(gas_eth, wallet.chain.as_str());
         total_gas_usd += gas_usd;
 
         let tokens = aggregate_token_balances(&token_txs, &wallet.address);
@@ -37,7 +37,7 @@ pub async fn fetch_portfolio(
         wallet_portfolios.push(WalletPortfolio {
             address: wallet.address.clone(),
             label: format!("Wallet {}", truncate_address(&wallet.address)),
-            chain: wallet.chain.clone(),
+            chain: wallet.chain.as_str().to_string(),
             native_balance: "0".to_string(),
             tokens,
             gas_spent_eth: format!("{:.6}", gas_eth),
@@ -45,15 +45,11 @@ pub async fn fetch_portfolio(
         });
     }
 
-    let since_epoch = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default();
-
     Ok(PortfolioSummary {
         total_gas_spent_usd: total_gas_usd,
         total_wallets: addresses.len(),
         wallet_portfolios,
-        fetched_at: format!("{}Z", since_epoch.as_secs()),
+        fetched_at: chrono::Utc::now().to_rfc3339(),
     })
 }
 

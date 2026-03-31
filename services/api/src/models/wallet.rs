@@ -1,9 +1,33 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Chain {
+    Ethereum,
+    Arbitrum,
+    Optimism,
+    Base,
+    Polygon,
+    Solana,
+}
+
+impl Chain {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Chain::Ethereum => "ethereum",
+            Chain::Arbitrum => "arbitrum",
+            Chain::Optimism => "optimism",
+            Chain::Base => "base",
+            Chain::Polygon => "polygon",
+            Chain::Solana => "solana",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletAddress {
     pub address: String,
-    pub chain: String,
+    pub chain: Chain,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

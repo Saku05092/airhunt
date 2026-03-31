@@ -13,6 +13,8 @@ import {
   saveCustomTask,
 } from "./supabase-sync";
 
+const log = __DEV__ ? console.warn : () => {};
+
 // Fallback sample data (used when API is unavailable)
 const FALLBACK_CAMPAIGNS: Campaign[] = [
   {
@@ -135,7 +137,7 @@ export const useStore = create<AppState>((set, get) => ({
         userPlan,
       });
     } catch (error) {
-      console.warn("[AirHunt] Failed to load from Supabase:", error);
+      log("[AirHunt] Failed to load from Supabase:", error);
     }
   },
 
@@ -157,7 +159,7 @@ export const useStore = create<AppState>((set, get) => ({
       }
     } catch (error) {
       set({ isLoading: false });
-      console.warn("[AirHunt] Sync failed:", error);
+      log("[AirHunt] Sync failed:", error);
     }
   },
 
@@ -172,7 +174,7 @@ export const useStore = create<AppState>((set, get) => ({
     const { userId } = get();
     if (userId) {
       saveTrackedCampaign(userId, campaignId).catch((err) =>
-        console.warn("[AirHunt] Failed to save tracked campaign:", err),
+        log("[AirHunt] Failed to save tracked campaign:", err),
       );
     }
   },
@@ -185,7 +187,7 @@ export const useStore = create<AppState>((set, get) => ({
     const { userId } = get();
     if (userId) {
       removeTrackedCampaign(userId, campaignId).catch((err) =>
-        console.warn("[AirHunt] Failed to remove tracked campaign:", err),
+        log("[AirHunt] Failed to remove tracked campaign:", err),
       );
     }
   },
@@ -203,7 +205,7 @@ export const useStore = create<AppState>((set, get) => ({
     const { userId } = get();
     if (userId) {
       saveWallet(userId, wallet).catch((err) =>
-        console.warn("[AirHunt] Failed to save wallet:", err),
+        log("[AirHunt] Failed to save wallet:", err),
       );
     }
     return true;
@@ -216,43 +218,37 @@ export const useStore = create<AppState>((set, get) => ({
     const { userId } = get();
     if (userId) {
       removeWalletFromDb(userId, walletId).catch((err) =>
-        console.warn("[AirHunt] Failed to remove wallet:", err),
+        log("[AirHunt] Failed to remove wallet:", err),
       );
     }
   },
 
   toggleTask: (walletId, taskId) => {
-    const existing = get().taskStatuses.find(
+    const state = get();
+    const existing = state.taskStatuses.find(
       (s) => s.walletId === walletId && s.taskId === taskId,
     );
     const newCompleted = existing ? !existing.completed : true;
 
-    set((state) => {
-      const found = state.taskStatuses.find(
-        (s) => s.walletId === walletId && s.taskId === taskId,
-      );
-      if (found) {
-        return {
-          taskStatuses: state.taskStatuses.map((s) =>
-            s.walletId === walletId && s.taskId === taskId
-              ? { ...s, completed: !s.completed, completedAt: !s.completed ? new Date().toISOString() : null }
-              : s,
-          ),
-        };
-      }
-      return {
+    if (existing) {
+      set({
+        taskStatuses: state.taskStatuses.map((s) =>
+          s.walletId === walletId && s.taskId === taskId
+            ? { ...s, completed: newCompleted, completedAt: newCompleted ? new Date().toISOString() : null }
+            : s,
+        ),
+      });
+    } else {
+      set({
         taskStatuses: [
           ...state.taskStatuses,
           { walletId, taskId, completed: true, completedAt: new Date().toISOString(), notes: "" },
         ],
-      };
-    });
+      });
+    }
 
-    const { userId } = get();
-    if (userId) {
-      saveTaskCompletion(userId, walletId, taskId, newCompleted).catch((err) =>
-        console.warn("[AirHunt] Failed to save task completion:", err),
-      );
+    if (state.userId) {
+      saveTaskCompletion(state.userId, walletId, taskId, newCompleted).catch(() => {});
     }
   },
 
@@ -280,7 +276,7 @@ export const useStore = create<AppState>((set, get) => ({
     const { userId } = get();
     if (userId) {
       saveCustomTask(userId, campaignId, title, description).catch((err) =>
-        console.warn("[AirHunt] Failed to save custom task:", err),
+        log("[AirHunt] Failed to save custom task:", err),
       );
     }
   },

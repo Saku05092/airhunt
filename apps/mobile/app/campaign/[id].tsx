@@ -1,3 +1,4 @@
+// TODO: Split into smaller components (currently 634 lines)
 import { useState } from "react";
 import { View, Text, ScrollView, StyleSheet, Pressable, Linking, TextInput, Share, ActivityIndicator, Alert } from "react-native";
 import { useLocalSearchParams } from "expo-router";

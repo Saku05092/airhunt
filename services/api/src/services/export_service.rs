@@ -23,7 +23,7 @@ pub async fn build_csv(
 
     for wallet in &req.addresses {
         let txs = onchain
-            .fetch_transactions(&wallet.address, &wallet.chain)
+            .fetch_transactions(&wallet.address, wallet.chain.as_str())
             .await
             .unwrap_or_default();
 
@@ -38,11 +38,12 @@ pub async fn build_csv(
             }
 
             let gas_eth = eth_math::compute_gas_eth(&tx.gas_used, &tx.gas_price);
-            let gas_usd = eth_math::estimate_usd(gas_eth, &wallet.chain);
+            let gas_usd = eth_math::estimate_usd(gas_eth, wallet.chain.as_str());
+            let chain_str = wallet.chain.as_str();
 
             writer.write_record([
                 &wallet.address,
-                &wallet.chain,
+                chain_str,
                 &tx.hash,
                 &tx.from,
                 &tx.to,

@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useStore } from "../../lib/store";
 import { requestPermissions } from "../../lib/notifications";
 import { colors, spacing, fontSize, borderRadius, tierColor, tierBgColor } from "../../lib/theme";
+import type { Campaign, CampaignTask } from "../../lib/types";
 
 function daysUntil(dateStr: string): number | null {
   if (!dateStr) return null;
@@ -12,7 +13,7 @@ function daysUntil(dateStr: string): number | null {
 }
 
 function CampaignCard({ campaign, isTracked, onToggleTrack, index }: {
-  campaign: any;
+  campaign: Campaign;
   isTracked: boolean;
   onToggleTrack: () => void;
   index: number;
@@ -88,7 +89,7 @@ function CampaignCard({ campaign, isTracked, onToggleTrack, index }: {
 
       {/* Quick tasks preview */}
       <View style={styles.taskPreview}>
-        {campaign.tasks.slice(0, 3).map((task: any, i: number) => (
+        {campaign.tasks.slice(0, 3).map((task: CampaignTask, i: number) => (
           <View key={i} style={styles.taskPreviewRow}>
             <View style={styles.taskDot} />
             <Text style={styles.taskPreviewText} numberOfLines={1}>{task.title}</Text>
